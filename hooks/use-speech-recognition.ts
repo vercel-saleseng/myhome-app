@@ -40,7 +40,7 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       const recognition = new SpeechRecognition()
 
       // Configure recognition settings
-      recognition.continuous = true
+      recognition.continuous = false
       recognition.interimResults = true
       recognition.lang = "en-US"
       recognition.maxAlternatives = 1
@@ -49,7 +49,7 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       recognition.onstart = () => {
         setIsListening(true)
         setError(null)
-        console.log("[v0] Speech recognition started")
+        console.log("Speech recognition started")
       }
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -68,17 +68,17 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
 
         // Update transcript with final + interim results
         setTranscript(finalTranscript + interimTranscript)
-        console.log("[v0] Speech result:", finalTranscript + interimTranscript)
+        console.log("Speech result:", finalTranscript + interimTranscript)
       }
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.log("[v0] Speech recognition error:", event.error)
+        console.log("Speech recognition error:", event.error)
         setError(`Speech recognition error: ${event.error}`)
         setIsListening(false)
       }
 
       recognition.onend = () => {
-        console.log("[v0] Speech recognition ended")
+        console.log("Speech recognition ended")
         setIsListening(false)
       }
 
@@ -86,7 +86,7 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       recognition.start()
       recognitionRef.current = recognition
     } catch (err) {
-      console.log("[v0] Error starting speech recognition:", err)
+      console.log("Error starting speech recognition:", err)
       setError("Failed to start speech recognition")
       setIsListening(false)
     }

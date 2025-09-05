@@ -6,7 +6,6 @@ import { AlertCircle } from "lucide-react"
 interface VoiceStatusProps {
   isListening: boolean
   isProcessing: boolean
-  hasTranscript: boolean
   error?: string | null
   isSupported?: boolean
   className?: string
@@ -15,7 +14,6 @@ interface VoiceStatusProps {
 export function VoiceStatus({
   isListening,
   isProcessing,
-  hasTranscript,
   error,
   isSupported = true,
   className,
@@ -49,13 +47,6 @@ export function VoiceStatus({
       }
     }
 
-    if (hasTranscript) {
-      return {
-        primary: "Ready to process",
-        secondary: "Tap the microphone again to send your message",
-      }
-    }
-
     return {
       primary: "Tap to speak",
       secondary: "Press the microphone to start a conversation with your AI assistant",
@@ -83,9 +74,7 @@ export function VoiceStatus({
                 ? "text-primary"
                 : isListening
                   ? "text-foreground"
-                  : hasTranscript
-                    ? "text-primary"
-                    : "text-muted-foreground",
+                  : "text-muted-foreground",
         )}
       >
         {status.primary}

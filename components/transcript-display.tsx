@@ -35,9 +35,6 @@ export function TranscriptDisplay({ transcript, isProcessing, isVisible, classNa
           <p className="text-foreground leading-relaxed text-balance">
             {transcript || "Your speech will appear here..."}
           </p>
-          {transcript && (
-            <p className="text-xs text-muted-foreground">Tap the microphone again to process this message</p>
-          )}
         </div>
       )}
     </Card>

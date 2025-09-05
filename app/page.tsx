@@ -157,12 +157,24 @@ const VoiceInterface = ({
 
   const { processAction, isProcessing } = useActionProcessor()
 
+  useEffect(() => {
+    const hasTranscript = !!transcript.trim()
+    if (!isListening && hasTranscript) {
+      console.log("Processing transcript:", transcript)
+      processAction(transcript).then((result) => {
+        setActionResult(result)
+        resetTranscript()
+      })
+      return
+    }
+  }, [isListening])
+
   const toggleListening = async () => {
     if (isListening) {
       stopListening()
       // Process the transcript if we have one
-      if (transcript.trim()) {
-        console.log("[v0] Processing transcript:", transcript)
+      if (!!transcript.trim()) {
+        console.log("Processing transcript:", transcript)
         const result = await processAction(transcript)
         setActionResult(result)
         resetTranscript()
@@ -210,7 +222,6 @@ const VoiceInterface = ({
         <VoiceStatus
           isListening={isListening}
           isProcessing={isProcessing}
-          hasTranscript={!!transcript.trim()}
           error={error}
           isSupported={isSupported}
         />
@@ -226,25 +237,6 @@ const VoiceInterface = ({
 
         {!isListening && !isProcessing && !transcript && !actionResult && isSupported && !error && (
           <div className="mt-8 text-center space-y-4 max-w-sm mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors">
-                <p className="font-medium text-foreground mb-1">Control lights</p>
-                <p className="text-muted-foreground">"Turn on living room lights"</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors">
-                <p className="font-medium text-foreground mb-1">Check sensors</p>
-                <p className="text-muted-foreground">"What's the temperature?"</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors">
-                <p className="font-medium text-foreground mb-1">Set scenes</p>
-                <p className="text-muted-foreground">"Activate movie mode"</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors">
-                <p className="font-medium text-foreground mb-1">General chat</p>
-                <p className="text-muted-foreground">"Tell me a fun fact"</p>
-              </div>
-            </div>
-
             {prfOutput && (
               <div className="mt-4 p-2 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
                 <p className="text-xs text-green-700 dark:text-green-300 flex items-center justify-center">

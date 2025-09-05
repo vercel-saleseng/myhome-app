@@ -179,7 +179,7 @@ export const usePasskey = () => {
       setAuthSession(session)
       setIsAuthenticated(true)
 
-      console.log("[v0] Passkey registered successfully:", credential.id)
+      console.log("Passkey registered successfully:", credential.id)
       return credential
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to register passkey"
