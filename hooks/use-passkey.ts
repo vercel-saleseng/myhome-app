@@ -28,42 +28,75 @@ export const usePasskey = () => {
   const [error, setError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authSession, setAuthSession] = useState<AuthenticationSession | null>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
+
+  const testWebAuthnAvailability = async (): Promise<boolean> => {
+    try {
+      await navigator.credentials.create({
+        publicKey: {
+          challenge: new Uint8Array(1),
+          rp: { name: "test", id: "localhost" },
+          user: { id: new Uint8Array(1), name: "test", displayName: "test" },
+          pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+          timeout: 1,
+        },
+      })
+      return true
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : ""
+      if (
+        errorMessage.includes("publickey-credentials-get") ||
+        errorMessage.includes("Permissions Policy") ||
+        errorMessage.includes("not enabled in this document")
+      ) {
+        setIsBlocked(true)
+        return false
+      }
+      return true
+    }
+  }
 
   useEffect(() => {
-    // Check if WebAuthn is supported
-    const supported =
-      typeof window !== "undefined" &&
-      "navigator" in window &&
-      "credentials" in navigator &&
-      typeof navigator.credentials.create === "function"
+    const checkSupport = async () => {
+      const basicSupport =
+        typeof window !== "undefined" &&
+        "navigator" in window &&
+        "credentials" in navigator &&
+        typeof navigator.credentials.create === "function"
 
-    setIsSupported(supported)
+      if (!basicSupport) {
+        setIsSupported(false)
+        return
+      }
 
-    // Check if user has existing passkey and valid session
-    if (supported) {
-      const storedUser = localStorage.getItem("passkey-user")
-      const storedCredentialId = localStorage.getItem("passkey-credential-id")
-      const storedSession = localStorage.getItem("auth-session")
+      const actuallySupported = await testWebAuthnAvailability()
+      setIsSupported(actuallySupported)
 
-      if (storedUser && storedCredentialId) {
-        setUser(JSON.parse(storedUser))
-        setHasPasskey(true)
+      if (actuallySupported) {
+        const storedUser = localStorage.getItem("passkey-user")
+        const storedCredentialId = localStorage.getItem("passkey-credential-id")
+        const storedSession = localStorage.getItem("auth-session")
 
-        // Check if there's a valid session (within 24 hours)
-        if (storedSession) {
-          const session: AuthenticationSession = JSON.parse(storedSession)
-          const isSessionValid = Date.now() - session.timestamp < 24 * 60 * 60 * 1000 // 24 hours
+        if (storedUser && storedCredentialId) {
+          setUser(JSON.parse(storedUser))
+          setHasPasskey(true)
 
-          if (isSessionValid) {
-            setAuthSession(session)
-            setIsAuthenticated(true)
-          } else {
-            // Clear expired session
-            localStorage.removeItem("auth-session")
+          if (storedSession) {
+            const session: AuthenticationSession = JSON.parse(storedSession)
+            const isSessionValid = Date.now() - session.timestamp < 24 * 60 * 60 * 1000
+
+            if (isSessionValid) {
+              setAuthSession(session)
+              setIsAuthenticated(true)
+            } else {
+              localStorage.removeItem("auth-session")
+            }
           }
         }
       }
     }
+
+    checkSupport()
   }, [])
 
   const generateChallenge = (): Uint8Array => {
@@ -76,6 +109,11 @@ export const usePasskey = () => {
 
   const registerPasskey = async (username: string, displayName: string) => {
     if (!isSupported) {
+      if (isBlocked) {
+        throw new Error(
+          "WebAuthn is blocked by security policy. Please open this app in a new tab or window instead of an iframe.",
+        )
+      }
       throw new Error("WebAuthn is not supported in this browser")
     }
 
@@ -99,8 +137,8 @@ export const usePasskey = () => {
             displayName: displayName,
           },
           pubKeyCredParams: [
-            { alg: -7, type: "public-key" }, // ES256
-            { alg: -257, type: "public-key" }, // RS256
+            { alg: -7, type: "public-key" },
+            { alg: -257, type: "public-key" },
           ],
           authenticatorSelection: {
             authenticatorAttachment: "platform",
@@ -109,7 +147,6 @@ export const usePasskey = () => {
           },
           timeout: 60000,
           extensions: {
-            // Enable PRF extension for secret derivation
             prf: {},
           },
         },
@@ -119,7 +156,6 @@ export const usePasskey = () => {
         throw new Error("Failed to create passkey")
       }
 
-      // Store user information and credential ID
       const passkeyUser: PasskeyUser = {
         id: Array.from(userId)
           .map((b) => b.toString(16).padStart(2, "0"))
@@ -157,6 +193,11 @@ export const usePasskey = () => {
 
   const authenticatePasskey = async () => {
     if (!isSupported) {
+      if (isBlocked) {
+        throw new Error(
+          "WebAuthn is blocked by security policy. Please open this app in a new tab or window instead of an iframe.",
+        )
+      }
       throw new Error("WebAuthn is not supported in this browser")
     }
 
@@ -193,7 +234,6 @@ export const usePasskey = () => {
             },
           ],
           extensions: {
-            // Request PRF extension for secret derivation
             prf: {
               eval: {
                 first: new TextEncoder().encode("voice-assistant-secret"),
@@ -222,7 +262,6 @@ export const usePasskey = () => {
         JSON.stringify({
           userId: session.userId,
           timestamp: session.timestamp,
-          // Note: PRF output is not stored in localStorage for security
         }),
       )
 
@@ -284,6 +323,7 @@ export const usePasskey = () => {
     error,
     isAuthenticated,
     authSession,
+    isBlocked,
     registerPasskey,
     authenticatePasskey,
     signOut,

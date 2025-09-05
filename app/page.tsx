@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Bot, Key, AlertCircle, Settings, Shield } from "lucide-react"
+import { Bot, Key, AlertCircle, Home, Shield, ExternalLink } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { VoiceButton } from "@/components/voice-button"
@@ -12,10 +12,8 @@ import { VoiceStatus } from "@/components/voice-status"
 import { AppHeader } from "@/components/app-header"
 import { ActionResultDisplay } from "@/components/action-result"
 import { PasskeyRegistration } from "@/components/passkey-registration"
-import { SecretManager } from "@/components/secret-manager"
-import { OnboardingFlow } from "@/components/onboarding-flow"
+import { HomeAssistantConfig } from "@/components/home-assistant-config"
 import { LoadingScreen } from "@/components/loading-screen"
-import { MobileSecretManager } from "@/components/mobile-secret-manager"
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition"
 import { useActionProcessor, type ActionResult } from "@/hooks/use-action-processor"
 import { usePasskey } from "@/hooks/use-passkey"
@@ -27,8 +25,7 @@ const LoginPage = ({
   isSupported,
   isLoading,
   error,
-  showOnboarding,
-  onSkipOnboarding,
+  isBlocked,
 }: {
   onRegisterPasskey: (username: string, displayName: string) => Promise<void>
   onAuthenticatePasskey: () => Promise<void>
@@ -36,14 +33,9 @@ const LoginPage = ({
   isSupported: boolean
   isLoading: boolean
   error: string | null
-  showOnboarding: boolean
-  onSkipOnboarding: () => void
+  isBlocked: boolean
 }) => {
   const [showRegistration, setShowRegistration] = useState(!hasPasskey)
-
-  if (showOnboarding) {
-    return <OnboardingFlow onComplete={onSkipOnboarding} />
-  }
 
   if (!isSupported) {
     return (
@@ -59,18 +51,40 @@ const LoginPage = ({
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              WebAuthn passkeys are not supported in this browser. Please use Chrome, Edge, or Safari.
+              {isBlocked ? (
+                <>
+                  WebAuthn is blocked by security policy. This app needs to run in a new tab or window to work properly.
+                </>
+              ) : (
+                <>WebAuthn passkeys are not supported in this browser. Please use Chrome, Edge, or Safari.</>
+              )}
             </AlertDescription>
           </Alert>
 
-          <div className="text-center space-y-2">
-            <p className="text-sm font-medium text-foreground">Recommended browsers:</p>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="p-2 rounded bg-muted/50">Chrome</div>
-              <div className="p-2 rounded bg-muted/50">Edge</div>
-              <div className="p-2 rounded bg-muted/50">Safari</div>
+          {isBlocked ? (
+            <div className="space-y-4">
+              <Button onClick={() => window.open(window.location.href, "_blank")} className="w-full">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open in New Tab
+              </Button>
+              <div className="text-center space-y-2">
+                <p className="text-sm font-medium text-foreground">Why is this needed?</p>
+                <p className="text-xs text-muted-foreground text-pretty">
+                  For security reasons, passkey authentication cannot work when this app is embedded in another page.
+                  Opening in a new tab allows full access to your device's security features.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="text-center space-y-2">
+              <p className="text-sm font-medium text-foreground">Recommended browsers:</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="p-2 rounded bg-muted/50">Chrome</div>
+                <div className="p-2 rounded bg-muted/50">Edge</div>
+                <div className="p-2 rounded bg-muted/50">Safari</div>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
     )
@@ -136,7 +150,7 @@ const VoiceInterface = ({
   prfOutput: ArrayBuffer | null
 }) => {
   const [actionResult, setActionResult] = useState<ActionResult | null>(null)
-  const [showSecrets, setShowSecrets] = useState(false)
+  const [showConfig, setShowConfig] = useState(false)
 
   const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
     useSpeechRecognition()
@@ -163,22 +177,24 @@ const VoiceInterface = ({
   return (
     <div className="min-h-screen bg-background">
       <AppHeader user={user} onSignOut={onSignOut}>
-        <Dialog open={showSecrets} onOpenChange={setShowSecrets}>
+        <Dialog open={showConfig} onOpenChange={setShowConfig}>
           <DialogTrigger asChild>
             <Button variant="ghost" size="sm" className="hidden sm:flex">
-              <Settings className="w-4 h-4 mr-2" />
-              Secrets
+              <Home className="w-4 h-4 mr-2" />
+              Home Assistant
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Encrypted Secret Storage</DialogTitle>
+              <DialogTitle>Home Assistant Configuration</DialogTitle>
             </DialogHeader>
-            <SecretManager prfOutput={prfOutput} />
+            <HomeAssistantConfig prfOutput={prfOutput} />
           </DialogContent>
         </Dialog>
 
-        <MobileSecretManager prfOutput={prfOutput} />
+        <Button variant="ghost" size="sm" className="sm:hidden" onClick={() => setShowConfig(true)}>
+          <Home className="w-4 h-4" />
+        </Button>
       </AppHeader>
 
       <main className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 space-y-8">
@@ -212,16 +228,16 @@ const VoiceInterface = ({
           <div className="mt-8 text-center space-y-4 max-w-sm mx-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors">
-                <p className="font-medium text-foreground mb-1">Ask questions</p>
-                <p className="text-muted-foreground">"What's the weather like?"</p>
+                <p className="font-medium text-foreground mb-1">Control lights</p>
+                <p className="text-muted-foreground">"Turn on living room lights"</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors">
-                <p className="font-medium text-foreground mb-1">Set reminders</p>
-                <p className="text-muted-foreground">"Remind me to call mom"</p>
+                <p className="font-medium text-foreground mb-1">Check sensors</p>
+                <p className="text-muted-foreground">"What's the temperature?"</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors">
-                <p className="font-medium text-foreground mb-1">Get help</p>
-                <p className="text-muted-foreground">"Help me write an email"</p>
+                <p className="font-medium text-foreground mb-1">Set scenes</p>
+                <p className="text-muted-foreground">"Activate movie mode"</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors">
                 <p className="font-medium text-foreground mb-1">General chat</p>
@@ -233,7 +249,7 @@ const VoiceInterface = ({
               <div className="mt-4 p-2 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
                 <p className="text-xs text-green-700 dark:text-green-300 flex items-center justify-center">
                   <Shield className="w-3 h-3 mr-1" />
-                  Encrypted storage enabled
+                  Secure Home Assistant integration ready
                 </p>
               </div>
             )}
@@ -258,7 +274,6 @@ const VoiceInterface = ({
 
 export default function HomePage() {
   const [actionResult, setActionResult] = useState<ActionResult | null>(null)
-  const [showOnboarding, setShowOnboarding] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
 
   const {
@@ -268,6 +283,7 @@ export default function HomePage() {
     isLoading,
     error,
     isAuthenticated,
+    isBlocked,
     registerPasskey,
     authenticatePasskey,
     signOut,
@@ -276,22 +292,12 @@ export default function HomePage() {
   } = usePasskey()
 
   useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem("has-seen-onboarding")
-    if (!hasSeenOnboarding && !hasPasskey) {
-      setShowOnboarding(true)
-    }
     setIsInitializing(false)
   }, [hasPasskey])
-
-  const handleSkipOnboarding = () => {
-    localStorage.setItem("has-seen-onboarding", "true")
-    setShowOnboarding(false)
-  }
 
   const handleRegisterPasskey = async (username: string, displayName: string) => {
     try {
       await registerPasskey(username, displayName)
-      localStorage.setItem("has-seen-onboarding", "true")
     } catch (err) {
       // Error is handled by the hook
     }
@@ -323,8 +329,7 @@ export default function HomePage() {
         isSupported={isSupported}
         isLoading={isLoading}
         error={error}
-        showOnboarding={showOnboarding}
-        onSkipOnboarding={handleSkipOnboarding}
+        isBlocked={isBlocked}
       />
     )
   }
