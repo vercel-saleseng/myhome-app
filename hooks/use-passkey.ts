@@ -66,6 +66,7 @@ export const usePasskey = () => {
         setError(null)
 
         try {
+            // Generate a user ID and challenge
             const userId = generateUserId()
             const challenge = generateChallenge()
 
@@ -100,24 +101,7 @@ export const usePasskey = () => {
                 throw new Error('Failed to create passkey')
             }
 
-            const passkeyUser: PasskeyUser = {
-                id: B64Encode(userId.buffer),
-                name: username,
-                displayName: displayName,
-            }
-
-            setUser(passkeyUser)
-
-            const session: AuthenticationSession = {
-                userId: passkeyUser.id,
-                timestamp: Date.now(),
-            }
-
-            setAuthSession(session)
-            setIsAuthenticated(true)
-
             console.log('Passkey registered successfully:', credential.id)
-            return credential
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to register passkey'
             setError(errorMessage)
@@ -126,6 +110,9 @@ export const usePasskey = () => {
         } finally {
             setIsLoading(false)
         }
+
+        // Because the registration doesn't give us the PRF output, we need to perform an authentication right away
+        return authenticatePasskey()
     }
 
     const authenticatePasskey = async () => {

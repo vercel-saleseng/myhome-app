@@ -146,7 +146,7 @@ const VoiceInterface = ({
 }: {
     user: { name: string; email: string }
     onSignOut: () => void
-    prfOutput: ArrayBuffer | null
+    prfOutput: BufferSource | null
 }) => {
     const [actionResult, setActionResult] = useState<ActionResult | null>(null)
     const [showConfig, setShowConfig] = useState(false)

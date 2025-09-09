@@ -17,7 +17,7 @@ interface DecryptedSecret {
     timestamp: number
 }
 
-export const useSecretStorage = (prfOutput: ArrayBuffer | null) => {
+export const useSecretStorage = (prfOutput: BufferSource | null) => {
     const [secrets, setSecrets] = useState<StoredSecret[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -35,7 +35,7 @@ export const useSecretStorage = (prfOutput: ArrayBuffer | null) => {
         }
     }, [])
 
-    const deriveKey = async (prfOutput: ArrayBuffer, salt: Uint8Array): Promise<CryptoKey> => {
+    const deriveKey = async (prfOutput: BufferSource, salt: BufferSource): Promise<CryptoKey> => {
         // Import the PRF output as key material
         const keyMaterial = await crypto.subtle.importKey('raw', prfOutput, { name: 'PBKDF2' }, false, ['deriveKey'])
 

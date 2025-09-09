@@ -8,7 +8,7 @@ interface HomeAssistantConfig {
     hasApiKey: boolean
 }
 
-export const useHomeAssistantConfig = (prfOutput: ArrayBuffer | null) => {
+export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
     const [config, setConfig] = useState<HomeAssistantConfig>({ url: '', hasApiKey: false })
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)

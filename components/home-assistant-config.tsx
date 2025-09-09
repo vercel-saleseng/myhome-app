@@ -11,7 +11,7 @@ import { Home, Key, Shield, AlertCircle, Check, Settings } from 'lucide-react'
 import { useHomeAssistantConfig } from '@/hooks/use-home-assistant-config'
 
 interface HomeAssistantConfigProps {
-    prfOutput: ArrayBuffer | null
+    prfOutput: BufferSource | null
     className?: string
 }
 
