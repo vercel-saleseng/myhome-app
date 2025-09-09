@@ -19,6 +19,20 @@ interface PasskeyRegistrationProps {
 export function PasskeyRegistration({ onRegister, isLoading, error }: PasskeyRegistrationProps) {
     const [username, setUsername] = useState('')
     const [displayName, setDisplayName] = useState('')
+    const [hasDisplayName, setHasDisplayName] = useState(false)
+
+    const onUsernameChange = (value: string) => {
+        setUsername(value)
+
+        if (!hasDisplayName) {
+            setDisplayName(value)
+        }
+    }
+
+    const onDisplayNameChange = (value: string) => {
+        setHasDisplayName(true)
+        setDisplayName(value)
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -58,7 +72,7 @@ export function PasskeyRegistration({ onRegister, isLoading, error }: PasskeyReg
                         type="text"
                         placeholder="Enter your username"
                         value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        onChange={(e) => onUsernameChange(e.target.value)}
                         disabled={isLoading}
                         required
                     />
@@ -71,7 +85,7 @@ export function PasskeyRegistration({ onRegister, isLoading, error }: PasskeyReg
                         type="text"
                         placeholder="Enter your display name"
                         value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
+                        onChange={(e) => onDisplayNameChange(e.target.value)}
                         disabled={isLoading}
                         required
                     />
@@ -95,12 +109,6 @@ export function PasskeyRegistration({ onRegister, isLoading, error }: PasskeyReg
                     )}
                 </Button>
             </form>
-
-            <div className="text-xs text-muted-foreground space-y-1">
-                <p>• Your passkey will be stored securely on this device</p>
-                <p>• Use your device's biometrics or PIN to authenticate</p>
-                <p>• Supports encrypted secret storage with PRF extension</p>
-            </div>
         </Card>
     )
 }

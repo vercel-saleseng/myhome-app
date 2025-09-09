@@ -29,7 +29,7 @@ export const useSecretStorage = (prfOutput: ArrayBuffer | null) => {
             try {
                 setSecrets(JSON.parse(storedSecrets))
             } catch (err) {
-                console.error('[v0] Failed to parse stored secrets:', err)
+                console.error('Failed to parse stored secrets:', err)
                 setError('Failed to load stored secrets')
             }
         }

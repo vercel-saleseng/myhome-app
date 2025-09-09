@@ -58,8 +58,7 @@ const LoginPage = ({
                                 </>
                             ) : (
                                 <>
-                                    WebAuthn passkeys are not supported in this browser. Please use Chrome, Edge, or
-                                    Safari.
+                                    WebAuthn passkeys with the PRF extension are not supported in this browser.
                                 </>
                             )}
                         </AlertDescription>

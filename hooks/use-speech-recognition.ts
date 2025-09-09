@@ -40,7 +40,7 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
             const recognition = new SpeechRecognition()
 
             // Configure recognition settings
-            recognition.continuous = false
+            //recognition.continuous = false
             recognition.interimResults = true
             recognition.lang = 'en-US'
             recognition.maxAlternatives = 1

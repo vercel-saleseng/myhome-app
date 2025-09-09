@@ -2,12 +2,6 @@
 
 import { useState, useEffect } from 'react'
 
-interface PasskeyCredential {
-    id: string
-    rawId: ArrayBuffer
-    type: 'public-key'
-}
-
 interface PasskeyUser {
     id: string
     name: string
@@ -30,41 +24,18 @@ export const usePasskey = () => {
     const [authSession, setAuthSession] = useState<AuthenticationSession | null>(null)
     const [isBlocked, setIsBlocked] = useState(false)
 
-    const testWebAuthnAvailability = async (): Promise<boolean> => {
-        try {
-            await navigator.credentials.create({
-                publicKey: {
-                    challenge: new Uint8Array(1),
-                    rp: { name: 'test', id: 'localhost' },
-                    user: { id: new Uint8Array(1), name: 'test', displayName: 'test' },
-                    pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
-                    timeout: 1,
-                },
-            })
-            return true
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : ''
-            if (
-                errorMessage.includes('publickey-credentials-get') ||
-                errorMessage.includes('Permissions Policy') ||
-                errorMessage.includes('not enabled in this document')
-            ) {
-                setIsBlocked(true)
-                return false
-            }
-            return true
-        }
-    }
-
     useEffect(() => {
         const checkSupport = async () => {
             const check =
+                // Base check for WebAuthn support
                 typeof window !== 'undefined' &&
                 'navigator' in window &&
                 'credentials' in navigator &&
-                typeof navigator.credentials.create === 'function'
+                typeof navigator.credentials.create === 'function' &&
+                // Check for PRF support
+                await checkPRFSupport()
 
-            setIsSupported(check)
+                setIsSupported(check)
             if (!check) {
                 return
             }
@@ -136,11 +107,11 @@ export const usePasskey = () => {
                         { alg: -257, type: 'public-key' },
                     ],
                     authenticatorSelection: {
-                        authenticatorAttachment: 'platform',
+                        //authenticatorAttachment: 'platform',
                         userVerification: 'required',
                         residentKey: 'required',
                     },
-                    timeout: 60000,
+                    timeout: 30000,
                     extensions: {
                         prf: {},
                     },
@@ -179,7 +150,7 @@ export const usePasskey = () => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to register passkey'
             setError(errorMessage)
-            console.error('[v0] Passkey registration failed:', err)
+            console.error('Passkey registration failed:', err)
             throw new Error(errorMessage)
         } finally {
             setIsLoading(false)
@@ -231,7 +202,7 @@ export const usePasskey = () => {
                     extensions: {
                         prf: {
                             eval: {
-                                first: new TextEncoder().encode('voice-assistant-secret'),
+                                first: getPRFSalt(),
                             },
                         },
                     },
@@ -242,9 +213,12 @@ export const usePasskey = () => {
                 throw new Error('Authentication failed')
             }
 
-            const response = assertion.response as AuthenticatorAssertionResponse
             const extensions = (assertion as any).getClientExtensionResults?.() || {}
             const prfOutput = extensions.prf?.results?.first
+
+            if (!prfOutput) {
+                throw new Error('Authenticator does not support the required PRF extension')
+            }
 
             const session: AuthenticationSession = {
                 userId: user!.id,
@@ -263,8 +237,8 @@ export const usePasskey = () => {
             setAuthSession(session)
             setIsAuthenticated(true)
 
-            console.log('[v0] Passkey authentication successful')
-            console.log('[v0] PRF extension available:', !!prfOutput)
+            console.log('Passkey authentication successful')
+            console.log('PRF extension available:', !!prfOutput)
 
             return { assertion, prfOutput }
         } catch (err) {
@@ -280,7 +254,7 @@ export const usePasskey = () => {
                 setError(errorMessage)
             }
 
-            console.error('[v0] Passkey authentication failed:', err)
+            console.error('Passkey authentication failed:', err)
             throw new Error(errorMessage)
         } finally {
             setIsLoading(false)
@@ -325,4 +299,18 @@ export const usePasskey = () => {
         clearPasskey,
         getPRFOutput,
     }
+}
+
+// Note that this just checks that the platform supports the PRF extension
+// Whether the key used supports it or not, we'll know only after using it
+function checkPRFSupport (): boolean|Promise<boolean> {
+    if (!window.PublicKeyCredential || typeof PublicKeyCredential.getClientCapabilities != 'function') {
+        return false
+    }
+
+    return PublicKeyCredential.getClientCapabilities().then((caps) => !!caps['extension:prf'])
+}
+
+function getPRFSalt() {
+    return new TextEncoder().encode('voice-assistant:' + globalThis.location.host)
 }
