@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Encode as B64Encode } from 'arraybuffer-encoding/base64/url'
 
 interface PasskeyUser {
     id: string
@@ -11,12 +12,11 @@ interface PasskeyUser {
 interface AuthenticationSession {
     userId: string
     timestamp: number
-    prfOutput?: ArrayBuffer
+    prfOutput?: BufferSource
 }
 
 export const usePasskey = () => {
     const [isSupported, setIsSupported] = useState(false)
-    const [hasPasskey, setHasPasskey] = useState(false)
     const [user, setUser] = useState<PasskeyUser | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -33,43 +33,22 @@ export const usePasskey = () => {
                 'credentials' in navigator &&
                 typeof navigator.credentials.create === 'function' &&
                 // Check for PRF support
-                await checkPRFSupport()
+                (await checkPRFSupport())
 
-                setIsSupported(check)
+            setIsSupported(check)
             if (!check) {
                 return
-            }
-
-            const storedUser = localStorage.getItem('passkey-user')
-            const storedCredentialId = localStorage.getItem('passkey-credential-id')
-            const storedSession = localStorage.getItem('auth-session')
-
-            if (storedUser && storedCredentialId) {
-                setUser(JSON.parse(storedUser))
-                setHasPasskey(true)
-
-                if (storedSession) {
-                    const session: AuthenticationSession = JSON.parse(storedSession)
-                    const isSessionValid = Date.now() - session.timestamp < 24 * 60 * 60 * 1000
-
-                    if (isSessionValid) {
-                        setAuthSession(session)
-                        setIsAuthenticated(true)
-                    } else {
-                        localStorage.removeItem('auth-session')
-                    }
-                }
             }
         }
 
         checkSupport()
     }, [])
 
-    const generateChallenge = (): Uint8Array => {
+    const generateChallenge = () => {
         return crypto.getRandomValues(new Uint8Array(32))
     }
 
-    const generateUserId = (): Uint8Array => {
+    const generateUserId = () => {
         return crypto.getRandomValues(new Uint8Array(64))
     }
 
@@ -94,7 +73,7 @@ export const usePasskey = () => {
                 publicKey: {
                     challenge,
                     rp: {
-                        name: 'Voice Assistant',
+                        name: 'MyHome Assistant',
                         id: window.location.hostname,
                     },
                     user: {
@@ -107,11 +86,10 @@ export const usePasskey = () => {
                         { alg: -257, type: 'public-key' },
                     ],
                     authenticatorSelection: {
-                        //authenticatorAttachment: 'platform',
                         userVerification: 'required',
                         residentKey: 'required',
                     },
-                    timeout: 30000,
+                    timeout: 30_000,
                     extensions: {
                         prf: {},
                     },
@@ -123,25 +101,18 @@ export const usePasskey = () => {
             }
 
             const passkeyUser: PasskeyUser = {
-                id: Array.from(userId)
-                    .map((b) => b.toString(16).padStart(2, '0'))
-                    .join(''),
+                id: B64Encode(userId.buffer),
                 name: username,
                 displayName: displayName,
             }
 
-            localStorage.setItem('passkey-user', JSON.stringify(passkeyUser))
-            localStorage.setItem('passkey-credential-id', credential.id)
-
             setUser(passkeyUser)
-            setHasPasskey(true)
 
             const session: AuthenticationSession = {
                 userId: passkeyUser.id,
                 timestamp: Date.now(),
             }
 
-            localStorage.setItem('auth-session', JSON.stringify(session))
             setAuthSession(session)
             setIsAuthenticated(true)
 
@@ -167,38 +138,17 @@ export const usePasskey = () => {
             throw new Error('WebAuthn is not supported in this browser')
         }
 
-        if (!hasPasskey) {
-            throw new Error('No passkey found. Please register first.')
-        }
-
         setIsLoading(true)
         setError(null)
 
         try {
             const challenge = generateChallenge()
-            const credentialId = localStorage.getItem('passkey-credential-id')
-
-            if (!credentialId) {
-                throw new Error('No credential ID found')
-            }
-
-            const credentialIdBytes = new Uint8Array(
-                atob(credentialId.replace(/-/g, '+').replace(/_/g, '/'))
-                    .split('')
-                    .map((char) => char.charCodeAt(0))
-            )
 
             const assertion = (await navigator.credentials.get({
                 publicKey: {
                     challenge,
-                    timeout: 60000,
+                    timeout: 30_000,
                     userVerification: 'required',
-                    allowCredentials: [
-                        {
-                            id: credentialIdBytes,
-                            type: 'public-key',
-                        },
-                    ],
                     extensions: {
                         prf: {
                             eval: {
@@ -213,7 +163,12 @@ export const usePasskey = () => {
                 throw new Error('Authentication failed')
             }
 
-            const extensions = (assertion as any).getClientExtensionResults?.() || {}
+            const response = assertion.response as AuthenticatorAssertionResponse
+            if (!response?.userHandle) {
+                throw new Error("Authenticator response doesn't contain user handle")
+            }
+
+            const extensions = assertion.getClientExtensionResults?.() || {}
             const prfOutput = extensions.prf?.results?.first
 
             if (!prfOutput) {
@@ -221,24 +176,15 @@ export const usePasskey = () => {
             }
 
             const session: AuthenticationSession = {
-                userId: user!.id,
+                userId: B64Encode(response.userHandle),
                 timestamp: Date.now(),
                 prfOutput: prfOutput,
             }
-
-            localStorage.setItem(
-                'auth-session',
-                JSON.stringify({
-                    userId: session.userId,
-                    timestamp: session.timestamp,
-                })
-            )
 
             setAuthSession(session)
             setIsAuthenticated(true)
 
             console.log('Passkey authentication successful')
-            console.log('PRF extension available:', !!prfOutput)
 
             return { assertion, prfOutput }
         } catch (err) {
@@ -262,31 +208,25 @@ export const usePasskey = () => {
     }
 
     const signOut = () => {
-        localStorage.removeItem('auth-session')
         setAuthSession(null)
         setIsAuthenticated(false)
         setError(null)
     }
 
     const clearPasskey = () => {
-        localStorage.removeItem('passkey-user')
-        localStorage.removeItem('passkey-credential-id')
-        localStorage.removeItem('auth-session')
-        localStorage.removeItem('encrypted-secret')
+        sessionStorage.removeItem('encrypted-secret')
         setUser(null)
-        setHasPasskey(false)
         setAuthSession(null)
         setIsAuthenticated(false)
         setError(null)
     }
 
-    const getPRFOutput = (): ArrayBuffer | null => {
+    const getPRFOutput = (): BufferSource | null => {
         return authSession?.prfOutput || null
     }
 
     return {
         isSupported,
-        hasPasskey,
         user,
         isLoading,
         error,
@@ -303,7 +243,7 @@ export const usePasskey = () => {
 
 // Note that this just checks that the platform supports the PRF extension
 // Whether the key used supports it or not, we'll know only after using it
-function checkPRFSupport (): boolean|Promise<boolean> {
+function checkPRFSupport(): boolean | Promise<boolean> {
     if (!window.PublicKeyCredential || typeof PublicKeyCredential.getClientCapabilities != 'function') {
         return false
     }

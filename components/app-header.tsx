@@ -20,11 +20,11 @@ export function AppHeader({ user, onSignOut, children }: AppHeaderProps) {
                         <Bot className="w-4 h-4 text-primary-foreground" />
                     </div>
                     <div className="hidden sm:block">
-                        <h1 className="font-semibold text-foreground">Voice Assistant</h1>
+                        <h1 className="font-semibold text-foreground">MyHome Assistant</h1>
                         <p className="text-sm text-muted-foreground">Welcome, {user.name}</p>
                     </div>
                     <div className="sm:hidden">
-                        <h1 className="font-semibold text-foreground text-sm">Voice Assistant</h1>
+                        <h1 className="font-semibold text-foreground text-sm">MyHome Assistant</h1>
                     </div>
                 </div>
 

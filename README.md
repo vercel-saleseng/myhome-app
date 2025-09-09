@@ -1,4 +1,4 @@
-# Voice assistant app
+# MyHome Assistant app
 
 _Automatically synced with your [v0.app](https://v0.app) deployments_
 

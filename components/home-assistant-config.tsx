@@ -180,9 +180,8 @@ export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfi
                 )}
 
                 <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border/50">
-                    <p>• URL is stored in plain text for easy access</p>
-                    <p>• API key is encrypted using your passkey's PRF extension</p>
-                    <p>• Only you can decrypt the API key with your authenticated passkey</p>
+                    <p>• API key is encrypted using your PassKey extension</p>
+                    <p>• Only you can decrypt the API key with your authenticated PassKey</p>
                 </div>
             </div>
         </Card>

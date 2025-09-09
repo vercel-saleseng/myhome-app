@@ -7,7 +7,7 @@
   "trailingComma": "es5",
   "overrides": [
     {
-      "files": "*.json",
+      "files": "*.json|*.yaml|.prettierrc",
       "options": {
         "tabWidth": 2
       }

@@ -106,7 +106,7 @@ export const useSecretStorage = (prfOutput: ArrayBuffer | null) => {
             // Save to localStorage
             localStorage.setItem('encrypted-secrets', JSON.stringify(updatedSecrets))
 
-            console.log('[v0] Secret encrypted and stored successfully:', secretName)
+            console.log('Secret encrypted and stored successfully:', secretName)
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to encrypt secret'
             setError(errorMessage)
@@ -153,7 +153,7 @@ export const useSecretStorage = (prfOutput: ArrayBuffer | null) => {
             const decoder = new TextDecoder()
             const decryptedData = decoder.decode(decryptedBuffer)
 
-            console.log('[v0] Secret decrypted successfully:', secret.name)
+            console.log('Secret decrypted successfully:', secret.name)
 
             return {
                 id: secret.id,
@@ -174,7 +174,7 @@ export const useSecretStorage = (prfOutput: ArrayBuffer | null) => {
             const updatedSecrets = secrets.filter((s) => s.id !== secretId)
             setSecrets(updatedSecrets)
             localStorage.setItem('encrypted-secrets', JSON.stringify(updatedSecrets))
-            console.log('[v0] Secret deleted successfully')
+            console.log('Secret deleted successfully')
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to delete secret'
             setError(errorMessage)
@@ -185,7 +185,7 @@ export const useSecretStorage = (prfOutput: ArrayBuffer | null) => {
     const clearAllSecrets = (): void => {
         setSecrets([])
         localStorage.removeItem('encrypted-secrets')
-        console.log('[v0] All secrets cleared')
+        console.log('All secrets cleared')
     }
 
     return {

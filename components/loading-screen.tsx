@@ -18,7 +18,7 @@ export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <h2 className="text-xl font-semibold text-foreground">Voice Assistant</h2>
+                        <h2 className="text-xl font-semibold text-foreground">MyHome Assistant</h2>
                         <p className="text-muted-foreground">{message}</p>
                     </div>
                 </div>

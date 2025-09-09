@@ -67,7 +67,7 @@ export const useHomeAssistantConfig = (prfOutput: ArrayBuffer | null) => {
             }
 
             setConfig({ url, hasApiKey: !!apiKey.trim() })
-            console.log('[v0] Home Assistant configuration saved successfully')
+            console.log('Home Assistant configuration saved successfully')
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to save configuration'
             setError(errorMessage)

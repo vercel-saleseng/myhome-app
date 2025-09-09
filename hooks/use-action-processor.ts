@@ -119,7 +119,7 @@ export function useActionProcessor(): ActionProcessor {
                 action: 'unknown_command',
             }
         } catch (error) {
-            console.log('[v0] Action processing error:', error)
+            console.log('Action processing error:', error)
             return {
                 type: 'error',
                 message: 'Sorry, I encountered an error while processing your request. Please try again.',

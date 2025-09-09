@@ -7,9 +7,8 @@ import { Suspense } from 'react'
 import './globals.css'
 
 export const metadata: Metadata = {
-    title: 'Voice Assistant',
-    description: 'Personal AI Assistant with Voice Interaction',
-    generator: 'v0.app',
+    title: 'MyHome Assistant',
+    description: 'AI Home Assistant',
 }
 
 export default function RootLayout({

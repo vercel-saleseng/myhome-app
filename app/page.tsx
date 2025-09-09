@@ -21,7 +21,6 @@ import { usePasskey } from '@/hooks/use-passkey'
 const LoginPage = ({
     onRegisterPasskey,
     onAuthenticatePasskey,
-    hasPasskey,
     isSupported,
     isLoading,
     error,
@@ -29,13 +28,12 @@ const LoginPage = ({
 }: {
     onRegisterPasskey: (username: string, displayName: string) => Promise<void>
     onAuthenticatePasskey: () => Promise<void>
-    hasPasskey: boolean
     isSupported: boolean
     isLoading: boolean
     error: string | null
     isBlocked: boolean
 }) => {
-    const [showRegistration, setShowRegistration] = useState(!hasPasskey)
+    const [showRegistration, setShowRegistration] = useState(false)
 
     if (!isSupported) {
         return (
@@ -45,7 +43,7 @@ const LoginPage = ({
                         <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                             <Bot className="w-8 h-8 text-muted-foreground" />
                         </div>
-                        <h1 className="text-2xl font-bold text-foreground">Voice Assistant</h1>
+                        <h1 className="text-2xl font-bold text-foreground">MyHome Assistant</h1>
                     </div>
 
                     <Alert variant="destructive">
@@ -57,9 +55,7 @@ const LoginPage = ({
                                     to work properly.
                                 </>
                             ) : (
-                                <>
-                                    WebAuthn passkeys with the PRF extension are not supported in this browser.
-                                </>
+                                <>WebAuthn passkeys with the PRF extension are not supported in this browser.</>
                             )}
                         </AlertDescription>
                     </Alert>
@@ -99,13 +95,11 @@ const LoginPage = ({
             {showRegistration ? (
                 <div className="w-full max-w-md space-y-4">
                     <PasskeyRegistration onRegister={onRegisterPasskey} isLoading={isLoading} error={error} />
-                    {hasPasskey && (
-                        <div className="text-center">
-                            <Button variant="link" onClick={() => setShowRegistration(false)} className="text-sm">
-                                Already have a passkey? Sign in instead
-                            </Button>
-                        </div>
-                    )}
+                    <div className="text-center">
+                        <Button variant="link" onClick={() => setShowRegistration(false)} className="text-sm">
+                            Already have a passkey? Sign in instead
+                        </Button>
+                    </div>
                 </div>
             ) : (
                 <Card className="w-full max-w-md p-8 space-y-6">
@@ -113,7 +107,7 @@ const LoginPage = ({
                         <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
                             <Bot className="w-8 h-8 text-primary-foreground" />
                         </div>
-                        <h1 className="text-2xl font-bold text-foreground text-balance">Voice Assistant</h1>
+                        <h1 className="text-2xl font-bold text-foreground text-balance">MyHome Assistant</h1>
                         <p className="text-muted-foreground text-pretty">Sign in with your passkey</p>
                     </div>
 
@@ -139,10 +133,6 @@ const LoginPage = ({
                             Create New Passkey
                         </Button>
                     </div>
-
-                    <p className="text-xs text-muted-foreground text-center text-pretty">
-                        By using this app, you agree to our Terms of Service and Privacy Policy
-                    </p>
                 </Card>
             )}
         </div>
@@ -279,7 +269,6 @@ export default function HomePage() {
 
     const {
         isSupported,
-        hasPasskey,
         user,
         isLoading,
         error,
@@ -294,7 +283,7 @@ export default function HomePage() {
 
     useEffect(() => {
         setIsInitializing(false)
-    }, [hasPasskey])
+    }, [isSupported])
 
     const handleRegisterPasskey = async (username: string, displayName: string) => {
         try {
@@ -318,7 +307,7 @@ export default function HomePage() {
     }
 
     if (isInitializing) {
-        return <LoadingScreen message="Initializing Voice Assistant..." />
+        return <LoadingScreen message="Initializing MyHome Assistant..." />
     }
 
     if (!isAuthenticated) {
@@ -326,7 +315,6 @@ export default function HomePage() {
             <LoginPage
                 onRegisterPasskey={handleRegisterPasskey}
                 onAuthenticatePasskey={handleAuthenticatePasskey}
-                hasPasskey={hasPasskey}
                 isSupported={isSupported}
                 isLoading={isLoading}
                 error={error}
