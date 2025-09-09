@@ -58,39 +58,34 @@ export const usePasskey = () => {
 
     useEffect(() => {
         const checkSupport = async () => {
-            const basicSupport =
+            const check =
                 typeof window !== 'undefined' &&
                 'navigator' in window &&
                 'credentials' in navigator &&
                 typeof navigator.credentials.create === 'function'
 
-            if (!basicSupport) {
-                setIsSupported(false)
+            setIsSupported(check)
+            if (!check) {
                 return
             }
 
-            const actuallySupported = await testWebAuthnAvailability()
-            setIsSupported(actuallySupported)
+            const storedUser = localStorage.getItem('passkey-user')
+            const storedCredentialId = localStorage.getItem('passkey-credential-id')
+            const storedSession = localStorage.getItem('auth-session')
 
-            if (actuallySupported) {
-                const storedUser = localStorage.getItem('passkey-user')
-                const storedCredentialId = localStorage.getItem('passkey-credential-id')
-                const storedSession = localStorage.getItem('auth-session')
+            if (storedUser && storedCredentialId) {
+                setUser(JSON.parse(storedUser))
+                setHasPasskey(true)
 
-                if (storedUser && storedCredentialId) {
-                    setUser(JSON.parse(storedUser))
-                    setHasPasskey(true)
+                if (storedSession) {
+                    const session: AuthenticationSession = JSON.parse(storedSession)
+                    const isSessionValid = Date.now() - session.timestamp < 24 * 60 * 60 * 1000
 
-                    if (storedSession) {
-                        const session: AuthenticationSession = JSON.parse(storedSession)
-                        const isSessionValid = Date.now() - session.timestamp < 24 * 60 * 60 * 1000
-
-                        if (isSessionValid) {
-                            setAuthSession(session)
-                            setIsAuthenticated(true)
-                        } else {
-                            localStorage.removeItem('auth-session')
-                        }
+                    if (isSessionValid) {
+                        setAuthSession(session)
+                        setIsAuthenticated(true)
+                    } else {
+                        localStorage.removeItem('auth-session')
                     }
                 }
             }
