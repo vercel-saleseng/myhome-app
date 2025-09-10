@@ -91,7 +91,7 @@ export const useHomeAssistantTools = (prfOutput: BufferSource | null) => {
                 aliases: area.aliases || [],
             }))
         } catch (error) {
-            console.warn('[v0] Failed to get areas:', error)
+            console.warn('Failed to get areas:', error)
             return []
         }
     }
@@ -105,7 +105,7 @@ export const useHomeAssistantTools = (prfOutput: BufferSource | null) => {
                 area_id: device.area_id,
             }))
         } catch (error) {
-            console.warn('[v0] Failed to get devices:', error)
+            console.warn('Failed to get devices:', error)
             return []
         }
     }
@@ -237,11 +237,11 @@ export const useHomeAssistantTools = (prfOutput: BufferSource | null) => {
             // Check cache first
             const now = Date.now()
             if (!forceRefresh && cacheRef.current && now - cacheRef.current.lastUpdated < cacheRef.current.ttl) {
-                console.log('[v0] Using cached entities')
+                console.log('Using cached entities')
                 return { success: true, data: cacheRef.current.entities }
             }
 
-            console.log('[v0] Fetching fresh Home Assistant entities...')
+            console.log('Fetching fresh Home Assistant entities...')
 
             // Fetch all data in parallel
             const [states, areas, devices] = await Promise.all([makeHARequest('states'), getAreas(), getDevices()])
@@ -280,10 +280,10 @@ export const useHomeAssistantTools = (prfOutput: BufferSource | null) => {
             cacheRef.current = newCache
             setEntityCache(newCache)
 
-            console.log('[v0] Found and categorized entities:', relevantEntities.length)
+            console.log('Found and categorized entities:', relevantEntities.length)
             return { success: true, data: relevantEntities }
         } catch (error) {
-            console.error('[v0] Failed to get entities:', error)
+            console.error('Failed to get entities:', error)
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
         }
     }
@@ -291,11 +291,11 @@ export const useHomeAssistantTools = (prfOutput: BufferSource | null) => {
     // Get specific entity state
     const getEntityState = async (entityId: string): Promise<HAToolResult> => {
         try {
-            console.log('[v0] Getting state for entity:', entityId)
+            console.log('Getting state for entity:', entityId)
             const state = await makeHARequest(`states/${entityId}`)
             return { success: true, data: state }
         } catch (error) {
-            console.error('[v0] Failed to get entity state:', error)
+            console.error('Failed to get entity state:', error)
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
         }
     }
@@ -303,13 +303,13 @@ export const useHomeAssistantTools = (prfOutput: BufferSource | null) => {
     // Call a service (like opening/closing doors)
     const callService = async (domain: string, service: string, entityId: string): Promise<HAToolResult> => {
         try {
-            console.log('[v0] Calling service:', { domain, service, entityId })
+            console.log('Calling service:', { domain, service, entityId })
             await makeHARequest(`services/${domain}/${service}`, 'POST', {
                 entity_id: entityId,
             })
             return { success: true, data: { domain, service, entityId } }
         } catch (error) {
-            console.error('[v0] Failed to call service:', error)
+            console.error('Failed to call service:', error)
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
         }
     }
@@ -328,10 +328,10 @@ export const useHomeAssistantTools = (prfOutput: BufferSource | null) => {
                 matchContext(entity, context, areas)
             )
 
-            console.log('[v0] Found entities for context:', context, matchingEntities.length)
+            console.log('Found entities for context:', context, matchingEntities.length)
             return { success: true, data: matchingEntities }
         } catch (error) {
-            console.error('[v0] Failed to find entities by context:', error)
+            console.error('Failed to find entities by context:', error)
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
         }
     }
@@ -376,7 +376,7 @@ export const useHomeAssistantTools = (prfOutput: BufferSource | null) => {
 
             return { success: true, data: summary }
         } catch (error) {
-            console.error('[v0] Failed to get entity summary:', error)
+            console.error('Failed to get entity summary:', error)
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
         }
     }, [])

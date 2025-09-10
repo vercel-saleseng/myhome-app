@@ -1,5 +1,5 @@
 import { generateText, tool } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway } from '@ai-sdk/gateway'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -77,26 +77,26 @@ Example confirmation response:
 const homeAssistantTools = {
     get_entities: tool({
         description: 'Get all door and cover entities from Home Assistant',
-        parameters: z.object({}),
+        inputSchema: z.object({}),
     }),
 
     get_entity_state: tool({
         description: 'Get the current state of a specific Home Assistant entity',
-        parameters: z.object({
+        inputSchema: z.object({
             entityId: z.string().describe('The entity ID to check (e.g., cover.garage_door)'),
         }),
     }),
 
     find_entities_by_context: tool({
         description: 'Find entities by room or location context',
-        parameters: z.object({
+        inputSchema: z.object({
             context: z.string().describe('The room or location context (e.g., garage, front, back)'),
         }),
     }),
 
     call_service: tool({
         description: 'Call a Home Assistant service to control an entity (only use after user confirmation)',
-        parameters: z.object({
+        inputSchema: z.object({
             domain: z.string().describe('The domain (e.g., cover, lock)'),
             service: z.string().describe('The service (e.g., open_cover, close_cover, lock, unlock)'),
             entityId: z.string().describe('The entity ID to control'),
@@ -115,24 +115,23 @@ export async function POST(request: NextRequest) {
             } as AgentResponse)
         }
 
-        console.log('[v0] Processing agent request:', { transcript, userId, hasToolResults: !!toolResults })
+        console.log('Processing agent request:', { transcript, userId, hasToolResults: !!toolResults })
 
         let prompt = `User said: "${transcript}"`
 
         if (toolResults) {
             prompt = `Previous tool results: ${JSON.stringify(toolResults)}
-                
+
                 User originally said: "${transcript}"
-                
+
                 Based on the tool results, provide a response. If this involves changing device state (opening, closing, locking, unlocking), ask for confirmation with proper confirmationData.`
         }
 
         const { text, toolCalls } = await generateText({
-            model: openai('gpt-4o-mini'),
+            model: gateway('openai/gpt-5-mini'),
             system: SYSTEM_PROMPT,
             prompt,
             tools: homeAssistantTools,
-            maxToolRoundtrips: 0, // We'll handle tool calls manually on the client
         })
 
         console.log('AI response:', { text, toolCalls: toolCalls?.length || 0 })
@@ -182,7 +181,7 @@ export async function POST(request: NextRequest) {
             action: 'ai_response',
         } as AgentResponse)
     } catch (error) {
-        console.error('[v0] Agent API error:', error)
+        console.error('Agent API error:', error)
         return NextResponse.json(
             {
                 type: 'error',

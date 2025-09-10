@@ -36,7 +36,7 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
         const results: Record<string, any> = {}
 
         for (const toolCall of toolCalls) {
-            console.log('[v0] Executing tool:', toolCall.name, toolCall.parameters)
+            console.log('Executing tool:', toolCall.name, toolCall.parameters)
 
             try {
                 let result
@@ -62,9 +62,9 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
                 }
 
                 results[toolCall.name] = result
-                console.log('[v0] Tool result:', toolCall.name, result)
+                console.log('Tool result:', toolCall.name, result)
             } catch (error) {
-                console.error('[v0] Tool execution error:', error)
+                console.error('Tool execution error:', error)
                 results[toolCall.name] = {
                     success: false,
                     error: error instanceof Error ? error.message : 'Unknown error',
@@ -123,7 +123,7 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
             const isNegative = negativePatterns.some((pattern) => response.includes(pattern))
 
             if (isPositive && !isNegative) {
-                console.log('[v0] User confirmed action:', confirmation)
+                console.log('User confirmed action:', confirmation)
 
                 try {
                     const result = await haTools.callService(
@@ -148,7 +148,7 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
                         }
                     }
                 } catch (error) {
-                    console.error('[v0] Confirmation execution error:', error)
+                    console.error('Confirmation execution error:', error)
                     return {
                         type: 'error',
                         message: `Failed to execute action: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -158,7 +158,7 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
             }
 
             if (isNegative && !isPositive) {
-                console.log('[v0] User cancelled action:', confirmation)
+                console.log('User cancelled action:', confirmation)
                 setPendingConfirmation(null)
                 setRetryCount(0)
                 return {
@@ -211,12 +211,12 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
 
             return await response.json()
         } catch (error) {
-            console.error(`[v0] Agent API error (attempt ${retryAttempt + 1}):`, error)
+            console.error(`Agent API error (attempt ${retryAttempt + 1}):`, error)
 
             if (retryAttempt < maxRetries && error instanceof Error) {
                 // Retry on network errors or timeouts
                 if (error.name === 'TimeoutError' || error.message.includes('fetch')) {
-                    console.log(`[v0] Retrying API request (${retryAttempt + 1}/${maxRetries})...`)
+                    console.log(`Retrying API request (${retryAttempt + 1}/${maxRetries})...`)
                     await new Promise((resolve) => setTimeout(resolve, 1000 * (retryAttempt + 1))) // Exponential backoff
                     return makeAgentRequest(body, retryAttempt + 1)
                 }
@@ -239,14 +239,14 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
                 // Generate a simple user ID based on session (better than hardcoded)
                 const userId = `user-${Date.now().toString(36)}`
 
-                console.log('[v0] Processing new action:', { transcript, userId })
+                console.log('Processing new action:', { transcript, userId })
 
                 let result = await makeAgentRequest({
                     transcript,
                     userId,
                 })
 
-                console.log('[v0] Initial agent response:', result)
+                console.log('Initial agent response:', result)
 
                 // Handle tool execution
                 if (result.type === 'tool_call_needed' && result.toolCalls) {
@@ -259,7 +259,7 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
                         }
                     }
 
-                    console.log('[v0] Executing tools for user request...')
+                    console.log('Executing tools for user request...')
                     const toolResults = await executeTools(result.toolCalls)
 
                     // Send tool results back to agent
@@ -269,7 +269,7 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
                         toolResults,
                     })
 
-                    console.log('[v0] Final agent response:', result)
+                    console.log('Final agent response:', result)
                 }
 
                 // Handle confirmation requests
@@ -292,7 +292,7 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
                     action: result.action,
                 }
             } catch (error) {
-                console.error('[v0] Action processing error:', error)
+                console.error('Action processing error:', error)
 
                 // Provide more specific error messages based on error type
                 let errorMessage = 'Sorry, I encountered an error while processing your request.'

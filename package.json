@@ -10,6 +10,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/gateway": "^1.0.20",
     "@ai-sdk/openai": "^2.0.28",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
