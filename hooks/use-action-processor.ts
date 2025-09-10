@@ -1,137 +1,325 @@
-'use client'
+"use client"
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback } from "react"
+import { useHomeAssistantTools } from "./use-home-assistant-tools"
 
 export interface ActionResult {
-    type: 'success' | 'error' | 'info'
-    message: string
-    action?: string
+  type: "success" | "error" | "info" | "confirmation_needed"
+  message: string
+  action?: string
+}
+
+export interface ConfirmationData {
+  action: string
+  entity: string
+  newState: string
+  domain: string
+  service: string
+  entityId: string
 }
 
 interface ActionProcessor {
-    processAction: (transcript: string) => Promise<ActionResult>
-    isProcessing: boolean
+  processAction: (transcript: string) => Promise<ActionResult>
+  isProcessing: boolean
+  pendingConfirmation: ConfirmationData | null
+  clearConfirmation: () => void
+  retryCount: number
 }
 
-export function useActionProcessor(): ActionProcessor {
-    const [isProcessing, setIsProcessing] = useState(false)
+export function useActionProcessor(prfOutput: BufferSource | null): ActionProcessor {
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationData | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+  const haTools = useHomeAssistantTools(prfOutput)
 
-    const processAction = useCallback(async (transcript: string): Promise<ActionResult> => {
-        setIsProcessing(true)
+  const executeTools = async (toolCalls: Array<{ name: string; parameters: Record<string, any> }>) => {
+    const results: Record<string, any> = {}
+
+    for (const toolCall of toolCalls) {
+      console.log("[v0] Executing tool:", toolCall.name, toolCall.parameters)
+
+      try {
+        let result
+        switch (toolCall.name) {
+          case "get_entities":
+            result = await haTools.getEntities()
+            break
+          case "get_entity_state":
+            result = await haTools.getEntityState(toolCall.parameters.entityId)
+            break
+          case "find_entities_by_context":
+            result = await haTools.findEntitiesByContext(toolCall.parameters.context)
+            break
+          case "call_service":
+            result = await haTools.callService(
+              toolCall.parameters.domain,
+              toolCall.parameters.service,
+              toolCall.parameters.entityId,
+            )
+            break
+          default:
+            result = { success: false, error: `Unknown tool: ${toolCall.name}` }
+        }
+
+        results[toolCall.name] = result
+        console.log("[v0] Tool result:", toolCall.name, result)
+      } catch (error) {
+        console.error("[v0] Tool execution error:", error)
+        results[toolCall.name] = {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      }
+    }
+
+    return results
+  }
+
+  const clearConfirmation = useCallback(() => {
+    setPendingConfirmation(null)
+    setRetryCount(0)
+  }, [])
+
+  const handleConfirmationResponse = useCallback(
+    async (transcript: string, confirmation: ConfirmationData): Promise<ActionResult> => {
+      const response = transcript.toLowerCase().trim()
+
+      // Enhanced positive confirmation patterns
+      const positivePatterns = [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "ok",
+        "okay",
+        "confirm",
+        "do it",
+        "go ahead",
+        "proceed",
+        "continue",
+        "affirmative",
+        "correct",
+        "right",
+        "absolutely",
+      ]
+
+      // Enhanced negative confirmation patterns
+      const negativePatterns = [
+        "no",
+        "nope",
+        "cancel",
+        "stop",
+        "abort",
+        "never mind",
+        "nevermind",
+        "negative",
+        "don't",
+        "halt",
+        "wait",
+        "hold on",
+      ]
+
+      const isPositive = positivePatterns.some((pattern) => response.includes(pattern))
+      const isNegative = negativePatterns.some((pattern) => response.includes(pattern))
+
+      if (isPositive && !isNegative) {
+        console.log("[v0] User confirmed action:", confirmation)
 
         try {
-            // Simulate processing delay
-            await new Promise((resolve) => setTimeout(resolve, 1500))
+          const result = await haTools.callService(confirmation.domain, confirmation.service, confirmation.entityId)
 
-            const command = transcript.toLowerCase().trim()
-
-            // Weather queries
-            if (command.includes('weather')) {
-                return {
-                    type: 'success',
-                    message:
-                        "I'd love to help with weather information! In a full implementation, I would connect to a weather API to get current conditions for your location.",
-                    action: 'weather_query',
-                }
-            }
-
-            // Time queries
-            if (command.includes('time') || command.includes('what time')) {
-                const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                return {
-                    type: 'success',
-                    message: `The current time is ${currentTime}.`,
-                    action: 'time_query',
-                }
-            }
-
-            // Reminder commands
-            if (command.includes('remind') || command.includes('reminder')) {
-                return {
-                    type: 'success',
-                    message:
-                        "I've noted your reminder request! In a complete system, I would integrate with your calendar or reminder app to set this up.",
-                    action: 'set_reminder',
-                }
-            }
-
-            // Joke requests
-            if (command.includes('joke') || command.includes('funny')) {
-                const jokes = [
-                    "Why don't scientists trust atoms? Because they make up everything!",
-                    'I told my wife she was drawing her eyebrows too high. She looked surprised.',
-                    "Why don't programmers like nature? It has too many bugs!",
-                    'What do you call a fake noodle? An impasta!',
-                    'Why did the AI go to therapy? It had too many deep learning issues!',
-                ]
-                const randomJoke = jokes[Math.floor(Math.random() * jokes.length)]
-                return {
-                    type: 'success',
-                    message: randomJoke,
-                    action: 'tell_joke',
-                }
-            }
-
-            // Email/writing help
-            if (command.includes('email') || command.includes('write') || command.includes('help me write')) {
-                return {
-                    type: 'success',
-                    message:
-                        'I can help you with writing! In a full implementation, I would open a writing assistant interface where we could collaborate on your email or document.',
-                    action: 'writing_help',
-                }
-            }
-
-            // News queries
-            if (command.includes('news') || command.includes('latest')) {
-                return {
-                    type: 'success',
-                    message:
-                        'For the latest news, I would typically connect to news APIs to provide current headlines. This feature would be available in the complete version!',
-                    action: 'news_query',
-                }
-            }
-
-            // Greetings
-            if (command.includes('hello') || command.includes('hi') || command.includes('hey')) {
-                return {
-                    type: 'success',
-                    message:
-                        "Hello! I'm your AI voice assistant. I'm here to help with questions, reminders, and various tasks. What can I do for you today?",
-                    action: 'greeting',
-                }
-            }
-
-            // General questions
-            if (command.includes('how are you') || command.includes('how do you')) {
-                return {
-                    type: 'success',
-                    message:
-                        "I'm doing great, thank you for asking! I'm an AI assistant designed to help you with various tasks through voice interaction. How can I assist you today?",
-                    action: 'general_question',
-                }
-            }
-
-            // Default response for unrecognized commands
+          if (result.success) {
+            setPendingConfirmation(null)
+            setRetryCount(0)
             return {
-                type: 'info',
-                message: `I heard you say: "${transcript}". I'm still learning to understand all types of requests. Try asking about the weather, time, setting reminders, or requesting a joke!`,
-                action: 'unknown_command',
+              type: "success",
+              message: `Successfully ${confirmation.action} ${confirmation.entity}.`,
+              action: "action_executed",
             }
+          } else {
+            return {
+              type: "error",
+              message: `Failed to ${confirmation.action} ${confirmation.entity}: ${result.error}`,
+              action: "action_failed",
+            }
+          }
         } catch (error) {
-            console.log('Action processing error:', error)
-            return {
-                type: 'error',
-                message: 'Sorry, I encountered an error while processing your request. Please try again.',
-                action: 'error',
-            }
-        } finally {
-            setIsProcessing(false)
+          console.error("[v0] Confirmation execution error:", error)
+          return {
+            type: "error",
+            message: `Failed to execute action: ${error instanceof Error ? error.message : "Unknown error"}`,
+            action: "action_failed",
+          }
         }
-    }, [])
+      }
 
-    return {
-        processAction,
-        isProcessing,
+      if (isNegative && !isPositive) {
+        console.log("[v0] User cancelled action:", confirmation)
+        setPendingConfirmation(null)
+        setRetryCount(0)
+        return {
+          type: "info",
+          message: "Action cancelled.",
+          action: "action_cancelled",
+        }
+      }
+
+      // If unclear response, ask again with more specific guidance
+      setRetryCount((prev) => prev + 1)
+
+      if (retryCount >= 2) {
+        // After 3 attempts, cancel the confirmation
+        setPendingConfirmation(null)
+        setRetryCount(0)
+        return {
+          type: "info",
+          message: "Confirmation timeout. Action cancelled for safety.",
+          action: "confirmation_timeout",
+        }
+      }
+
+      return {
+        type: "confirmation_needed",
+        message: `I didn't understand your response. Please clearly say "yes" to ${confirmation.action} the ${confirmation.entity}, or "no" to cancel. (Attempt ${retryCount + 1} of 3)`,
+        action: "confirmation_retry",
+      }
+    },
+    [haTools, retryCount],
+  )
+
+  const makeAgentRequest = async (body: any, retryAttempt = 0): Promise<any> => {
+    const maxRetries = 2
+
+    try {
+      const response = await fetch("/api/agent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(30000),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error(`[v0] Agent API error (attempt ${retryAttempt + 1}):`, error)
+
+      if (retryAttempt < maxRetries && error instanceof Error) {
+        // Retry on network errors or timeouts
+        if (error.name === "TimeoutError" || error.message.includes("fetch")) {
+          console.log(`[v0] Retrying API request (${retryAttempt + 1}/${maxRetries})...`)
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (retryAttempt + 1))) // Exponential backoff
+          return makeAgentRequest(body, retryAttempt + 1)
+        }
+      }
+
+      throw error
     }
+  }
+
+  const processAction = useCallback(
+    async (transcript: string): Promise<ActionResult> => {
+      setIsProcessing(true)
+
+      try {
+        // Handle confirmation responses first
+        if (pendingConfirmation) {
+          return await handleConfirmationResponse(transcript, pendingConfirmation)
+        }
+
+        // Generate a simple user ID based on session (better than hardcoded)
+        const userId = `user-${Date.now().toString(36)}`
+
+        console.log("[v0] Processing new action:", { transcript, userId })
+
+        let result = await makeAgentRequest({
+          transcript,
+          userId,
+        })
+
+        console.log("[v0] Initial agent response:", result)
+
+        // Handle tool execution
+        if (result.type === "tool_call_needed" && result.toolCalls) {
+          if (!haTools.isConfigured) {
+            return {
+              type: "error",
+              message:
+                "Home Assistant is not configured. Please set up your Home Assistant connection in the settings first.",
+              action: "configuration_needed",
+            }
+          }
+
+          console.log("[v0] Executing tools for user request...")
+          const toolResults = await executeTools(result.toolCalls)
+
+          // Send tool results back to agent
+          result = await makeAgentRequest({
+            transcript,
+            userId,
+            toolResults,
+          })
+
+          console.log("[v0] Final agent response:", result)
+        }
+
+        // Handle confirmation requests
+        if (result.type === "confirmation_needed" && result.confirmationData) {
+          setPendingConfirmation(result.confirmationData)
+          setRetryCount(0)
+          return {
+            type: "confirmation_needed",
+            message: result.message,
+            action: result.action,
+          }
+        }
+
+        // Reset retry count on successful processing
+        setRetryCount(0)
+
+        return {
+          type: result.type,
+          message: result.message,
+          action: result.action,
+        }
+      } catch (error) {
+        console.error("[v0] Action processing error:", error)
+
+        // Provide more specific error messages based on error type
+        let errorMessage = "Sorry, I encountered an error while processing your request."
+
+        if (error instanceof Error) {
+          if (error.name === "TimeoutError") {
+            errorMessage = "Request timed out. Please check your connection and try again."
+          } else if (error.message.includes("fetch")) {
+            errorMessage = "Network error. Please check your internet connection."
+          } else if (error.message.includes("500")) {
+            errorMessage = "Server error. Please try again in a moment."
+          }
+        }
+
+        return {
+          type: "error",
+          message: errorMessage,
+          action: "error",
+        }
+      } finally {
+        setIsProcessing(false)
+      }
+    },
+    [haTools, pendingConfirmation, handleConfirmationResponse, retryCount],
+  )
+
+  return {
+    processAction,
+    isProcessing,
+    pendingConfirmation,
+    clearConfirmation,
+    retryCount,
+  }
 }
