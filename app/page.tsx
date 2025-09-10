@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type Dispatch, type SetStateAction } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Bot, Key, AlertCircle, Home, Shield, ExternalLink } from 'lucide-react'
@@ -24,6 +24,7 @@ const LoginPage = ({
     isSupported,
     isLoading,
     error,
+    setError,
     isBlocked,
 }: {
     onRegisterPasskey: (username: string, displayName: string) => Promise<void>
@@ -31,6 +32,7 @@ const LoginPage = ({
     isSupported: boolean
     isLoading: boolean
     error: string | null
+    setError: Dispatch<SetStateAction<string | null>>
     isBlocked: boolean
 }) => {
     const [showRegistration, setShowRegistration] = useState(false)
@@ -96,7 +98,7 @@ const LoginPage = ({
                 <div className="w-full max-w-md space-y-4">
                     <PasskeyRegistration onRegister={onRegisterPasskey} isLoading={isLoading} error={error} />
                     <div className="text-center">
-                        <Button variant="link" onClick={() => setShowRegistration(false)} className="text-sm">
+                        <Button variant="link" onClick={() => {setShowRegistration(false); setError(null)}} className="text-sm">
                             Already have a passkey? Sign in instead
                         </Button>
                     </div>
@@ -125,7 +127,7 @@ const LoginPage = ({
                         </Button>
 
                         <Button
-                            onClick={() => setShowRegistration(true)}
+                            onClick={() => {setShowRegistration(true); setError(null)}}
                             variant="outline"
                             className="w-full"
                             disabled={isLoading}
@@ -272,6 +274,7 @@ export default function HomePage() {
         user,
         isLoading,
         error,
+        setError,
         isAuthenticated,
         isBlocked,
         registerPasskey,
@@ -317,6 +320,7 @@ export default function HomePage() {
                 onAuthenticatePasskey={handleAuthenticatePasskey}
                 isSupported={isSupported}
                 isLoading={isLoading}
+                setError={setError}
                 error={error}
                 isBlocked={isBlocked}
             />

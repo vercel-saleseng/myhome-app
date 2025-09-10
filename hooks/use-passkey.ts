@@ -217,6 +217,7 @@ export const usePasskey = () => {
         user,
         isLoading,
         error,
+        setError,
         isAuthenticated,
         authSession,
         isBlocked,
