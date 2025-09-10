@@ -1,8 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, CheckCircle, Loader2, Settings, Wifi, WifiOff } from 'lucide-react'
+import { AlertTriangle, Loader2, Settings, Wifi, WifiOff } from 'lucide-react'
 
 interface ConnectionStatus {
     isConnected: boolean
@@ -30,7 +29,22 @@ export function HomeAssistantStatus({
     onTestConnection,
     className,
 }: HomeAssistantStatusProps) {
-    const { isConnected, isLoading, error, haInfo } = connectionStatus
+    const { isConnected, isLoading, error, haInfo, lastChecked } = connectionStatus
+
+    if (isLoading || lastChecked === null) {
+        return (
+            <div
+                className={`p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 ${className}`}
+            >
+                <div className="flex items-center space-x-2">
+                    <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                    <span className="text-sm text-blue-800 dark:text-blue-200">
+                        Testing Home Assistant connection...
+                    </span>
+                </div>
+            </div>
+        )
+    }
 
     if (!hasConfig) {
         return (
@@ -53,21 +67,6 @@ export function HomeAssistantStatus({
         )
     }
 
-    if (isLoading) {
-        return (
-            <div
-                className={`p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 ${className}`}
-            >
-                <div className="flex items-center space-x-2">
-                    <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-                    <span className="text-sm text-blue-800 dark:text-blue-200">
-                        Testing Home Assistant connection...
-                    </span>
-                </div>
-            </div>
-        )
-    }
-
     if (isConnected && haInfo) {
         return (
             <div
@@ -75,7 +74,7 @@ export function HomeAssistantStatus({
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <Wifi className="w-4 h-4 text-green-600 dark:text-green-400" />
                         <div className="flex flex-col">
                             <span className="text-sm font-medium text-green-800 dark:text-green-200">
                                 Connected to {haInfo.name}
@@ -87,10 +86,6 @@ export function HomeAssistantStatus({
                             )}
                         </div>
                     </div>
-                    <Badge variant="secondary" className="text-xs">
-                        <Wifi className="w-3 h-3 mr-1" />
-                        Online
-                    </Badge>
                 </div>
             </div>
         )

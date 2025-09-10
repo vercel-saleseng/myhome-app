@@ -122,18 +122,16 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
         setConfig({ url: '', hasApiKey: false })
 
         // Also delete the encrypted API key
-        if (config.hasApiKey) {
-            const storedSecrets = localStorage.getItem('encrypted-secrets')
-            if (storedSecrets) {
-                try {
-                    const secrets = JSON.parse(storedSecrets)
-                    const apiKeySecret = secrets.find((secret: any) => secret.name === HA_API_KEY_SECRET_NAME)
-                    if (apiKeySecret) {
-                        deleteSecret(apiKeySecret.id)
-                    }
-                } catch (err) {
-                    console.error('Failed to delete API key:', err)
+        const storedSecrets = localStorage.getItem('encrypted-secrets')
+        if (storedSecrets) {
+            try {
+                const secrets = JSON.parse(storedSecrets)
+                const apiKeySecret = secrets.find((secret: any) => secret.name === HA_API_KEY_SECRET_NAME)
+                if (apiKeySecret) {
+                    deleteSecret(apiKeySecret.id)
                 }
+            } catch (err) {
+                console.error('Failed to delete API key:', err)
             }
         }
     }

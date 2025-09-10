@@ -24,6 +24,9 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    const encoder = new TextEncoder()
+    const decoder = new TextDecoder()
+
     useEffect(() => {
         // Load stored secrets from localStorage
         const storedSecrets = localStorage.getItem('encrypted-secrets')
@@ -38,7 +41,7 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
     }, [])
 
     // This is not a secret, but it's used for key-binding
-    const hmacMessage = new TextEncoder().encode('myhome-assistant-secret-encryption-key-v1')
+    const hmacMessage = encoder.encode('myhome-assistant-secret-encryption-key-v1')
 
     const deriveKey = async (prfOutput: BufferSource, salt: BufferSource): Promise<CryptoKey> => {
         // Import the PRF output as key material for HKDF
@@ -79,9 +82,8 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
             const nonce = crypto.getRandomValues(new Uint8Array(12))
 
             // Encrypt the secret data
-            const encoder = new TextEncoder()
             const encryptedData = await crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv: nonce },
+                { name: 'AES-GCM', iv: nonce, additionalData: encoder.encode(secretName) },
                 key,
                 encoder.encode(secretData)
             )
@@ -102,8 +104,6 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
 
             // Save to localStorage
             localStorage.setItem('encrypted-secrets', JSON.stringify(updatedSecrets))
-
-            console.log('Secret encrypted and stored successfully', secretName)
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to encrypt secret'
             setError(errorMessage)
@@ -136,12 +136,15 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
             const key = await deriveKey(prfOutput, salt)
 
             // Decrypt the data
-            const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, key, ciphertext)
+            const decryptedBuffer = await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: nonce, additionalData: encoder.encode(secret.name) },
+                key,
+                ciphertext
+            )
 
-            const decoder = new TextDecoder()
             const decryptedData = decoder.decode(decryptedBuffer)
 
-            console.log('Secret decrypted successfully:', secret.name)
+            console.log('Secret decrypted successfully:', secret.name, decryptedData)
 
             return {
                 id: secret.id,

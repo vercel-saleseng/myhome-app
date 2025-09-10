@@ -342,11 +342,5 @@ export default function HomePage() {
         )
     }
 
-    return (
-        <VoiceInterface
-            user={user || { name: 'User' }}
-            onSignOut={handleSignOut}
-            prfOutput={getPRFOutput()}
-        />
-    )
+    return <VoiceInterface user={user || { name: 'User' }} onSignOut={handleSignOut} prfOutput={getPRFOutput()} />
 }
