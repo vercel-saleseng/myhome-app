@@ -73,7 +73,7 @@ export function SecretManager({ prfOutput, className }: SecretManagerProps) {
                     setCopiedSecrets((prev) => ({ ...prev, [secretId]: false }))
                 }, 2000)
             } catch (err) {
-                console.error('[v0] Failed to copy to clipboard:', err)
+                console.error('Failed to copy to clipboard:', err)
             }
         }
     }

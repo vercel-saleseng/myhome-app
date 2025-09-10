@@ -30,7 +30,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                 const secrets = JSON.parse(storedSecrets)
                 hasApiKey = secrets.some((secret: any) => secret.name === HA_API_KEY_SECRET_NAME)
             } catch (err) {
-                console.error('[v0] Failed to check for API key:', err)
+                console.error('Failed to check for API key:', err)
             }
         }
 
@@ -71,7 +71,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to save configuration'
             setError(errorMessage)
-            console.error('[v0] Failed to save Home Assistant config:', err)
+            console.error('Failed to save Home Assistant config:', err)
             throw new Error(errorMessage)
         } finally {
             setIsLoading(false)
@@ -95,7 +95,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
             const decrypted = await decryptSecret(apiKeySecret.id)
             return decrypted.data
         } catch (err) {
-            console.error('[v0] Failed to decrypt API key:', err)
+            console.error('Failed to decrypt API key:', err)
             return null
         }
     }
@@ -115,7 +115,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                         deleteSecret(apiKeySecret.id)
                     }
                 } catch (err) {
-                    console.error('[v0] Failed to delete API key:', err)
+                    console.error('Failed to delete API key:', err)
                 }
             }
         }

@@ -1,12 +1,14 @@
 'use client'
 
+import { Encode as B64Encode, Decode as B64Decode } from 'arraybuffer-encoding/base64/url'
 import { useState, useEffect } from 'react'
 
 interface StoredSecret {
     id: string
     name: string
     encryptedData: string
-    iv: string
+    salt: string
+    nonce: string
     timestamp: number
 }
 
@@ -35,17 +37,20 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
         }
     }, [])
 
+    // This is not a secret, but it's used for key-binding
+    const hmacMessage = new TextEncoder().encode('myhome-assistant-secret-encryption-key-v1')
+
     const deriveKey = async (prfOutput: BufferSource, salt: BufferSource): Promise<CryptoKey> => {
-        // Import the PRF output as key material
-        const keyMaterial = await crypto.subtle.importKey('raw', prfOutput, { name: 'PBKDF2' }, false, ['deriveKey'])
+        // Import the PRF output as key material for HKDF
+        const keyMaterial = await crypto.subtle.importKey('raw', prfOutput, { name: 'HKDF' }, false, ['deriveKey'])
 
         // Derive an AES-GCM key from the PRF output
         return await crypto.subtle.deriveKey(
             {
-                name: 'PBKDF2',
+                name: 'HKDF',
                 salt: salt,
-                iterations: 100000,
                 hash: 'SHA-256',
+                info: hmacMessage,
             },
             keyMaterial,
             { name: 'AES-GCM', length: 256 },
@@ -63,17 +68,20 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
         setError(null)
 
         try {
-            // Generate a random salt and IV
-            const salt = crypto.getRandomValues(new Uint8Array(16))
-            const iv = crypto.getRandomValues(new Uint8Array(12))
+            // Generate a random salt for the key derivation
+            const salt = crypto.getRandomValues(new Uint8Array(12))
 
             // Derive encryption key from PRF output
             const key = await deriveKey(prfOutput, salt)
 
+            // Get a nonce for the GCM cipher
+            // Note: because each key is derived from a random seed, we're safe using a random nonce and there's no risk of nonce reuse
+            const nonce = crypto.getRandomValues(new Uint8Array(12))
+
             // Encrypt the secret data
             const encoder = new TextEncoder()
             const encryptedData = await crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv: iv },
+                { name: 'AES-GCM', iv: nonce },
                 key,
                 encoder.encode(secretData)
             )
@@ -82,35 +90,24 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
             const storedSecret: StoredSecret = {
                 id: crypto.randomUUID(),
                 name: secretName,
-                encryptedData: Array.from(new Uint8Array(encryptedData))
-                    .map((b) => b.toString(16).padStart(2, '0'))
-                    .join(''),
-                iv: Array.from(iv)
-                    .map((b) => b.toString(16).padStart(2, '0'))
-                    .join(''),
+                encryptedData: B64Encode(encryptedData),
+                salt: B64Encode(salt.buffer),
+                nonce: B64Encode(nonce.buffer),
                 timestamp: Date.now(),
             }
 
-            // Store salt with the secret (it's safe to store salt in plaintext)
-            const secretWithSalt = {
-                ...storedSecret,
-                salt: Array.from(salt)
-                    .map((b) => b.toString(16).padStart(2, '0'))
-                    .join(''),
-            }
-
             // Update secrets list
-            const updatedSecrets = [...secrets, secretWithSalt]
+            const updatedSecrets = [...secrets, storedSecret]
             setSecrets(updatedSecrets)
 
             // Save to localStorage
             localStorage.setItem('encrypted-secrets', JSON.stringify(updatedSecrets))
 
-            console.log('Secret encrypted and stored successfully:', secretName)
+            console.log('Secret encrypted and stored successfully', secretName)
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to encrypt secret'
             setError(errorMessage)
-            console.error('[v0] Secret encryption failed:', err)
+            console.error('Secret encryption failed:', err)
             throw new Error(errorMessage)
         } finally {
             setIsLoading(false)
@@ -130,25 +127,16 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
                 throw new Error('Secret not found')
             }
 
-            const secretWithSalt = secret as StoredSecret & { salt: string }
-            if (!secretWithSalt.salt) {
-                throw new Error('Secret salt not found')
-            }
-
-            // Convert hex strings back to Uint8Arrays
-            const salt = new Uint8Array(
-                secretWithSalt.salt.match(/.{2}/g)?.map((byte) => Number.parseInt(byte, 16)) || []
-            )
-            const iv = new Uint8Array(secret.iv.match(/.{2}/g)?.map((byte) => Number.parseInt(byte, 16)) || [])
-            const encryptedData = new Uint8Array(
-                secret.encryptedData.match(/.{2}/g)?.map((byte) => Number.parseInt(byte, 16)) || []
-            )
+            // Convert base64 strings back to Uint8Arrays
+            const salt = B64Decode(secret.salt)
+            const nonce = B64Decode(secret.nonce)
+            const ciphertext = B64Decode(secret.encryptedData)
 
             // Derive the same key used for encryption
             const key = await deriveKey(prfOutput, salt)
 
             // Decrypt the data
-            const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, encryptedData)
+            const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, key, ciphertext)
 
             const decoder = new TextDecoder()
             const decryptedData = decoder.decode(decryptedBuffer)
@@ -164,7 +152,7 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to decrypt secret'
             setError(errorMessage)
-            console.error('[v0] Secret decryption failed:', err)
+            console.error('Secret decryption failed:', err)
             throw new Error(errorMessage)
         }
     }
