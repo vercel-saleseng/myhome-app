@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Bot, User } from 'lucide-react'
 
 interface AppHeaderProps {
-    user: { name: string; email: string }
+    user: { name: string }
     onSignOut: () => void
     children?: React.ReactNode
 }
