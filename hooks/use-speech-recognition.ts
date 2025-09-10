@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { SpeechRecognition, SpeechRecognitionEvent, SpeechRecognitionErrorEvent } from 'web-speech-api'
 
 interface SpeechRecognitionHook {
     transcript: string

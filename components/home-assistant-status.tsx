@@ -7,7 +7,7 @@ interface ConnectionStatus {
     isConnected: boolean
     isLoading: boolean
     error: string | null
-    lastChecked: number | null
+    lastChecked: Date | null
     haInfo?: {
         version?: string
         name?: string

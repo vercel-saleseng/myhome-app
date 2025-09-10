@@ -12,7 +12,7 @@ interface ConnectionStatus {
     isConnected: boolean
     isLoading: boolean
     error: string | null
-    lastChecked: number | null
+    lastChecked: Date | null
     haInfo?: {
         version?: string
         name?: string
@@ -142,7 +142,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                 isConnected: false,
                 isLoading: false,
                 error: 'Configuration incomplete',
-                lastChecked: Date.now(),
+                lastChecked: new Date(),
             }
             setConnectionStatus(status)
             return status
@@ -183,7 +183,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                 isConnected: true,
                 isLoading: false,
                 error: null,
-                lastChecked: Date.now(),
+                lastChecked: new Date(),
                 haInfo: {
                     version: data.version,
                     name: data.location_name || 'Home Assistant',
@@ -209,7 +209,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                 isConnected: false,
                 isLoading: false,
                 error: errorMessage,
-                lastChecked: Date.now(),
+                lastChecked: new Date(),
             }
 
             setConnectionStatus(status)
@@ -229,7 +229,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                 isConnected: false,
                 isLoading: false,
                 error: config.url ? 'API key not configured' : 'URL not configured',
-                lastChecked: null,
+                lastChecked: new Date(),
             })
         }
     }, [config.url, config.hasApiKey, canEncrypt])

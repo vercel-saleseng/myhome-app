@@ -144,8 +144,6 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
 
             const decryptedData = decoder.decode(decryptedBuffer)
 
-            console.log('Secret decrypted successfully:', secret.name, decryptedData)
-
             return {
                 id: secret.id,
                 name: secret.name,
@@ -165,7 +163,6 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
             const updatedSecrets = secrets.filter((s) => s.id !== secretId)
             setSecrets(updatedSecrets)
             localStorage.setItem('encrypted-secrets', JSON.stringify(updatedSecrets))
-            console.log('Secret deleted successfully')
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to delete secret'
             setError(errorMessage)
@@ -176,7 +173,6 @@ export const useSecretStorage = (prfOutput: BufferSource | null) => {
     const clearAllSecrets = (): void => {
         setSecrets([])
         localStorage.removeItem('encrypted-secrets')
-        console.log('All secrets cleared')
     }
 
     return {
