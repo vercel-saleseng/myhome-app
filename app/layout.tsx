@@ -9,7 +9,7 @@ import './globals.css'
 export const metadata: Metadata = {
     title: 'MyHome Assistant',
     description: 'AI Home Assistant',
-    generator: 'v0.app'
+    generator: 'v0.app',
 }
 
 export default function RootLayout({
