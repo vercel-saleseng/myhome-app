@@ -8,7 +8,7 @@ import { Send, Bot, User } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useHomeAssistantTools } from '@/hooks/use-home-assistant-tools'
+import { useHomeAssistantWebSocket } from '@/hooks/use-home-assistant-websocket'
 import { useHomeAssistantConfig } from '@/hooks/use-home-assistant-config'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
 import { VoiceButton } from '@/components/voice-button'
@@ -47,8 +47,8 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
     const [pendingConfirmation, setPendingConfirmation] = useState<any>(null)
     const [showConfig, setShowConfig] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
-    const haTools = useHomeAssistantTools(prfOutput)
-    const { config, connectionStatus, testConnection } = useHomeAssistantConfig(prfOutput)
+    const haTools = useHomeAssistantWebSocket(prfOutput)
+    const { config } = useHomeAssistantConfig(prfOutput)
 
     const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
         useSpeechRecognition()
@@ -442,10 +442,10 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
             {/* Home Assistant Status */}
             <div className="mt-4">
                 <HomeAssistantStatus
-                    connectionStatus={connectionStatus}
+                    connectionStatus={haTools.connectionStatus}
                     hasConfig={!!(config.url && config.hasApiKey)}
                     onOpenConfig={() => setShowConfig(true)}
-                    onTestConnection={testConnection}
+                    onTestConnection={haTools.testConnection}
                     className="w-full max-w-64 mx-auto"
                 />
             </div>

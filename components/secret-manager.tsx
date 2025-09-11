@@ -149,7 +149,9 @@ export function SecretManager({ prfOutput, className }: SecretManagerProps) {
                                         id="secret-data"
                                         placeholder="Enter your secret data here..."
                                         value={secretData}
-                                        onChange={(e) => setSecretData(e.target.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                                            setSecretData(e.target.value)
+                                        }
                                         rows={4}
                                     />
                                 </div>

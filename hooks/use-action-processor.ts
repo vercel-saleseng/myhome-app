@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useHomeAssistantTools } from './use-home-assistant-tools'
+import { useHomeAssistantWebSocket } from './use-home-assistant-websocket'
 
 export interface ActionResult {
     type: 'success' | 'error' | 'info' | 'confirmation_needed'
@@ -30,7 +30,7 @@ export function useActionProcessor(prfOutput: BufferSource | null): ActionProces
     const [isProcessing, setIsProcessing] = useState(false)
     const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationData | null>(null)
     const [retryCount, setRetryCount] = useState(0)
-    const haTools = useHomeAssistantTools(prfOutput)
+    const haTools = useHomeAssistantWebSocket(prfOutput)
 
     const executeTools = async (toolCalls: Array<{ name: string; parameters: Record<string, any> }>) => {
         const results: Record<string, any> = {}
