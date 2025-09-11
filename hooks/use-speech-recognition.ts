@@ -67,7 +67,6 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
 
                 // Update transcript with final + interim results
                 setTranscript(finalTranscript + interimTranscript)
-                console.log('Speech result:', finalTranscript + interimTranscript)
             }
 
             recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -77,7 +76,7 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
             }
 
             recognition.onend = () => {
-                console.log('Speech recognition ended')
+                console.log('Speech recognition ended', transcript)
                 setIsListening(false)
             }
 

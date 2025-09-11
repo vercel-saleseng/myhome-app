@@ -6,17 +6,12 @@ import { Card } from '@/components/ui/card'
 import { Bot, Key, AlertCircle, Home, ExternalLink } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { VoiceButton } from '@/components/voice-button'
-import { TranscriptDisplay } from '@/components/transcript-display'
-import { VoiceStatus } from '@/components/voice-status'
 import { AppHeader } from '@/components/app-header'
-import { ActionResultDisplay } from '@/components/action-result'
 import { PasskeyRegistration } from '@/components/passkey-registration'
 import { HomeAssistantConfig } from '@/components/home-assistant-config'
 import { HomeAssistantStatus } from '@/components/home-assistant-status'
 import { LoadingScreen } from '@/components/loading-screen'
-import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
-import { useActionProcessor, type ActionResult } from '@/hooks/use-action-processor'
+import { SimpleChatInterface } from '@/components/simple-chat-interface'
 import { usePasskey } from '@/hooks/use-passkey'
 import { useHomeAssistantConfig } from '@/hooks/use-home-assistant-config'
 
@@ -153,7 +148,7 @@ const LoginPage = ({
     )
 }
 
-const VoiceInterface = ({
+const MainInterface = ({
     user,
     onSignOut,
     prfOutput,
@@ -162,53 +157,8 @@ const VoiceInterface = ({
     onSignOut: () => void
     prfOutput: BufferSource | null
 }) => {
-    const [actionResult, setActionResult] = useState<ActionResult | null>(null)
     const [showConfig, setShowConfig] = useState(false)
-
     const { config, connectionStatus, testConnection } = useHomeAssistantConfig(prfOutput)
-
-    const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
-        useSpeechRecognition()
-
-    const { processAction, isProcessing, pendingConfirmation, clearConfirmation } = useActionProcessor(prfOutput)
-
-    useEffect(() => {
-        const hasTranscript = !!transcript.trim()
-        if (!isListening && hasTranscript) {
-            console.log('Processing transcript:', transcript)
-            processAction(transcript).then((result) => {
-                setActionResult(result)
-                resetTranscript()
-            })
-            return
-        }
-    }, [isListening])
-
-    const toggleListening = async () => {
-        if (isListening) {
-            stopListening()
-            // Process the transcript if we have one
-            if (!!transcript.trim()) {
-                console.log('Processing transcript:', transcript)
-                const result = await processAction(transcript)
-                setActionResult(result)
-                resetTranscript()
-            }
-        } else {
-            resetTranscript()
-            setActionResult(null)
-            startListening()
-        }
-    }
-
-    const handleCancelConfirmation = () => {
-        clearConfirmation()
-        setActionResult({
-            type: 'info',
-            message: 'Confirmation cancelled.',
-            action: 'confirmation_cancelled',
-        })
-    }
 
     return (
         <div className="min-h-screen bg-background">
@@ -233,81 +183,14 @@ const VoiceInterface = ({
                 </Button>
             </AppHeader>
 
-            <main className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 space-y-8">
-                {/* Voice Button */}
-                <VoiceButton
-                    isListening={isListening}
-                    isProcessing={isProcessing}
-                    onToggle={toggleListening}
-                    className="mb-4"
-                />
-
-                {/* Status Text */}
-                <VoiceStatus
-                    isListening={isListening}
-                    isProcessing={isProcessing}
-                    error={error}
-                    isSupported={isSupported}
-                />
-
-                {/* Transcript Display */}
-                <TranscriptDisplay
-                    transcript={transcript}
-                    isProcessing={isProcessing}
-                    isVisible={!!(transcript || isProcessing)}
-                />
-
-                <ActionResultDisplay
-                    result={actionResult}
-                    isVisible={!!actionResult && !isProcessing && !transcript}
-                    isWaitingForConfirmation={!!pendingConfirmation}
-                />
-
-                {pendingConfirmation && !isListening && !isProcessing && (
-                    <div className="mt-4">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCancelConfirmation}
-                            className="text-muted-foreground bg-transparent"
-                        >
-                            Cancel Confirmation
-                        </Button>
-                    </div>
-                )}
-
-                {!isListening && !isProcessing && !transcript && !actionResult && isSupported && !error && (
-                    <div className="mt-8 text-center space-y-4 max-w-sm mx-auto">
-                        {prfOutput && (
-                            <HomeAssistantStatus
-                                connectionStatus={connectionStatus}
-                                hasConfig={!!(config.url && config.hasApiKey)}
-                                onOpenConfig={() => setShowConfig(true)}
-                                onTestConnection={testConnection}
-                                className="w-full"
-                            />
-                        )}
-                    </div>
-                )}
-
-                {!isSupported && (
-                    <div className="mt-8 p-4 rounded-lg bg-muted/50 border border-border/50 max-w-md mx-auto">
-                        <h3 className="font-medium text-foreground mb-2">Browser Compatibility</h3>
-                        <p className="text-sm text-muted-foreground mb-3">Speech recognition works best in:</p>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                            <li>• Chrome (recommended)</li>
-                            <li>• Microsoft Edge</li>
-                            <li>• Safari (iOS/macOS)</li>
-                        </ul>
-                    </div>
-                )}
+            <main className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] p-4">
+                <SimpleChatInterface prfOutput={prfOutput} />
             </main>
         </div>
     )
 }
 
 export default function HomePage() {
-    const [actionResult, setActionResult] = useState<ActionResult | null>(null)
     const [isInitializing, setIsInitializing] = useState(true)
 
     const {
@@ -347,7 +230,6 @@ export default function HomePage() {
 
     const handleSignOut = () => {
         signOut()
-        setActionResult(null)
     }
 
     if (isInitializing) {
@@ -368,5 +250,5 @@ export default function HomePage() {
         )
     }
 
-    return <VoiceInterface user={user || { name: 'User' }} onSignOut={handleSignOut} prfOutput={getPRFOutput()} />
+    return <MainInterface user={user || { name: 'User' }} onSignOut={handleSignOut} prfOutput={getPRFOutput()} />
 }
