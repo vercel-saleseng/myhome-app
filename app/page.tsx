@@ -11,7 +11,7 @@ import { PasskeyRegistration } from '@/components/passkey-registration'
 import { HomeAssistantConfig } from '@/components/home-assistant-config'
 import { HomeAssistantStatus } from '@/components/home-assistant-status'
 import { LoadingScreen } from '@/components/loading-screen'
-import { SimpleChatInterface } from '@/components/simple-chat-interface'
+import { ModernChatInterface } from '@/components/modern-chat-interface'
 import { usePasskey } from '@/hooks/use-passkey'
 import { useHomeAssistantConfig } from '@/hooks/use-home-assistant-config'
 
@@ -183,7 +183,7 @@ const MainInterface = ({
             </AppHeader>
 
             <main className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] p-4">
-                <SimpleChatInterface prfOutput={prfOutput} />
+                <ModernChatInterface prfOutput={prfOutput} />
             </main>
         </div>
     )

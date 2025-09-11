@@ -1,4 +1,4 @@
-import { generateText, tool } from 'ai'
+import { convertToModelMessages, streamText, type UIMessage } from 'ai'
 import { gateway } from '@ai-sdk/gateway'
 import { openai } from '@ai-sdk/openai'
 import { type NextRequest } from 'next/server'
@@ -27,48 +27,18 @@ Workflow for control commands:
 
 Always be helpful and explain what you're doing.`
 
-
 export async function POST(request: NextRequest) {
-    try {
-        const { messages } = await request.json()
+    const { messages }: { messages: UIMessage[] } = await request.json()
 
-        console.log('Chat request received with', messages?.length, 'messages')
+    console.log('Chat request received with', messages?.length, 'messages')
 
-        const result = await generateText({
-            model: openai('gpt-5-mini'),
-            system: SYSTEM_PROMPT,
-            messages,
-            tools: HomeAssistantToolset,
-            temperature: 0.6,
-        })
+    const result = streamText({
+        model: openai('gpt-4o-mini'),
+        system: SYSTEM_PROMPT,
+        messages: convertToModelMessages(messages),
+        tools: HomeAssistantToolset,
+        temperature: 0.6,
+    })
 
-        console.log('AI response:', {test: result.text, toolCalls: result.toolCalls})
-
-        // Return both the text and tool calls for client-side processing
-        return new Response(
-            JSON.stringify({
-                content: result.text,
-                toolCalls:
-                    result.toolCalls?.map((call) => ({
-                        name: call.toolName,
-                        input: call.input,
-                    })) || [],
-            }),
-            {
-                headers: { 'Content-Type': 'application/json' },
-            }
-        )
-    } catch (error) {
-        console.error('Chat API error:', error)
-        return new Response(
-            JSON.stringify({
-                error: 'Error processing chat request',
-                content: 'Sorry, I encountered an error processing your request. Please try again.',
-            }),
-            {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            }
-        )
-    }
+    return result.toUIMessageStreamResponse()
 }
