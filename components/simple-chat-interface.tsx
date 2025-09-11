@@ -14,18 +14,8 @@ import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
 import { VoiceButton } from '@/components/voice-button'
 import { HomeAssistantStatus } from '@/components/home-assistant-status'
 import { HomeAssistantConfig } from '@/components/home-assistant-config'
-
-interface Message {
-    id: string
-    role: 'user' | 'assistant'
-    content: string
-    toolCalls?: Array<{
-        name: string
-        input: any
-        result?: any
-    }>
-    timestamp: Date
-}
+import type { UserModelMessage, ModelMessage, AssistantModelMessage, ToolModelMessage, TypedToolCall, TypedToolResult } from 'ai'
+import HomeAssistantToolset from '@/lib/home-assistant-toolset'
 
 interface ChatInterfaceProps {
     prfOutput: BufferSource | null
@@ -33,12 +23,12 @@ interface ChatInterfaceProps {
 }
 
 export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterfaceProps) {
-    const [messages, setMessages] = useState<Message[]>([
+    const [messages, setMessages] = useState<ModelMessage[]>([
         {
             id: 'welcome',
             role: 'assistant',
             content:
-                'Hi! I\'m your Home Assistant voice assistant. You can ask me to check on your devices or control them. Try saying something like "Is the garage door open?" or "Open the front door".',
+                `Hi! I'm your Home Assistant voice assistant. You can ask me to check on your devices or control them. Try saying something like "Is the garage door open?" or "Open the front door".`,
             timestamp: new Date(),
         },
     ])
@@ -74,54 +64,58 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
         scrollToBottom()
     }, [messages])
 
-    const executeTools = async (toolCalls: Array<{ name: string; input: any }>) => {
-        const results: Array<{ name: string; input: any; result: any }> = []
+    const executeTools = async (toolCalls: Array<TypedToolCall<typeof HomeAssistantToolset>>) => {
+        const results: Array<TypedToolResult<typeof HomeAssistantToolset>> = []
 
         for (const toolCall of toolCalls) {
-            console.log('Executing tool:', toolCall.name, toolCall.input)
+            console.log('Executing tool:', toolCall.toolName, toolCall.input)
 
             try {
-                let result
-                switch (toolCall.name) {
+                let output
+                switch (toolCall.toolName) {
                     case 'get_entities':
-                        result = await haTools.getEntities()
+                        output = await haTools.getEntities()
                         break
                     case 'get_entity_state':
-                        result = await haTools.getEntityState(toolCall.input.entityId)
+                        output = await haTools.getEntityState(toolCall.input.entityId)
                         break
                     case 'find_entities_by_context':
-                        result = await haTools.findEntitiesByContext(toolCall.input.context)
+                        output = await haTools.findEntitiesByContext(toolCall.input.context)
                         break
                     case 'request_confirmation':
                         setPendingConfirmation(toolCall.input)
-                        result = {
+                        output = {
                             success: true,
                             message: `Confirmation requested: ${toolCall.input.action}`,
                             requiresUserInput: true,
                         }
                         break
                     case 'call_service':
-                        result = await haTools.callService(
+                        output = await haTools.callService(
                             toolCall.input.domain,
                             toolCall.input.service,
                             toolCall.input.entityId
                         )
                         break
                     default:
-                        result = { success: false, error: `Unknown tool: ${toolCall.name}` }
+                        output = { success: false, error: `Unknown tool: ${toolCall.toolName}` }
                 }
 
                 results.push({
-                    name: toolCall.name,
+                    type: 'tool-result',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
                     input: toolCall.input,
-                    result,
+                    output
                 })
             } catch (error) {
                 console.error('Tool execution error:', error)
                 results.push({
-                    name: toolCall.name,
+                    type: 'tool-result',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
                     input: toolCall.input,
-                    result: {
+                    output: {
                         success: false,
                         error: error instanceof Error ? error.message : 'Unknown error',
                     },
@@ -132,7 +126,7 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
         return results
     }
 
-    const callChatAPI = async (userMessage: string, conversationHistory: Message[]) => {
+    const callChatAPI = async (userMessage: string, conversationHistory: ModelMessage[]) => {
         const apiMessages = conversationHistory.map((msg) => ({
             role: msg.role,
             content: msg.content,
@@ -154,7 +148,6 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
         }
 
         const result = await response.json()
-
         if (result.error) {
             throw new Error(result.error)
         }
@@ -174,11 +167,9 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
                 messageToSend.toLowerCase().includes(word)
             )
 
-            const userMessage: Message = {
-                id: Date.now().toString(),
+            const userMessage: UserModelMessage = {
                 role: 'user',
                 content: messageToSend,
-                timestamp: new Date(),
             }
 
             setMessages((prev) => [...prev, userMessage])
@@ -193,32 +184,26 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
                         pendingConfirmation.entityId
                     )
 
-                    const responseMessage: Message = {
-                        id: (Date.now() + 1).toString(),
+                    const responseMessage: AssistantModelMessage = {
                         role: 'assistant',
                         content: result.success
                             ? `Successfully ${pendingConfirmation.action} ${pendingConfirmation.entity}.`
                             : `Failed to ${pendingConfirmation.action}: ${result.error}`,
-                        timestamp: new Date(),
                     }
 
                     setMessages((prev) => [...prev, responseMessage])
                 } else {
                     // Cancel the action
-                    const responseMessage: Message = {
-                        id: (Date.now() + 1).toString(),
+                    const responseMessage: AssistantModelMessage = {
                         role: 'assistant',
                         content: 'Action cancelled.',
-                        timestamp: new Date(),
                     }
                     setMessages((prev) => [...prev, responseMessage])
                 }
             } catch (error) {
-                const errorMessage: Message = {
-                    id: (Date.now() + 1).toString(),
+                const errorMessage: ModelMessage = {
                     role: 'assistant',
                     content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    timestamp: new Date(),
                 }
                 setMessages((prev) => [...prev, errorMessage])
             }
@@ -230,11 +215,9 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
         }
 
         // Normal message flow
-        const userMessage: Message = {
-            id: Date.now().toString(),
+        const userMessage: UserModelMessage = {
             role: 'user',
             content: messageToSend,
-            timestamp: new Date(),
         }
 
         setMessages((prev) => [...prev, userMessage])
@@ -251,12 +234,10 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
             }
 
             // Create assistant message
-            const assistantMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
+            const assistantMessage: ToolModelMessage = {
+                role: 'tool',
                 content: content || 'Processing your request...',
                 toolCalls: toolResults,
-                timestamp: new Date(),
             }
 
             setMessages((prev) => [...prev, assistantMessage])
@@ -271,22 +252,18 @@ export function SimpleChatInterface({ prfOutput, onConfirmation }: ChatInterface
                 const { content: followUpContent } = await callChatAPI(toolResultsMessage, updatedHistory)
 
                 if (followUpContent.trim()) {
-                    const followUpMessage: Message = {
-                        id: (Date.now() + 2).toString(),
+                    const followUpMessage: AssistantModelMessage = {
                         role: 'assistant',
                         content: followUpContent,
-                        timestamp: new Date(),
                     }
                     setMessages((prev) => [...prev, followUpMessage])
                 }
             }
         } catch (error) {
             console.error('Chat error:', error)
-            const errorMessage: Message = {
-                id: (Date.now() + 1).toString(),
+            const errorMessage: AssistantModelMessage = {
                 role: 'assistant',
                 content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                timestamp: new Date(),
             }
             setMessages((prev) => [...prev, errorMessage])
         } finally {

@@ -158,7 +158,6 @@ const MainInterface = ({
     prfOutput: BufferSource | null
 }) => {
     const [showConfig, setShowConfig] = useState(false)
-    const { config, connectionStatus, testConnection } = useHomeAssistantConfig(prfOutput)
 
     return (
         <div className="min-h-screen bg-background">
