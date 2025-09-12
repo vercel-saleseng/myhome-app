@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import {
     createConnection,
     subscribeEntities,
@@ -13,7 +13,7 @@ import {
     type HassConfig,
     type Auth,
 } from 'home-assistant-js-websocket'
-import { useHomeAssistantConfig } from './use-home-assistant-config'
+// import { useHomeAssistantConfig } from './use-home-assistant-config' // No longer needed
 
 export interface HAEntity {
     entity_id: string
@@ -54,8 +54,24 @@ interface EntityCache {
     ttl: number
 }
 
-export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
-    const { config, getApiKey } = useHomeAssistantConfig(prfOutput)
+export const useHomeAssistantWebSocket = (
+    prfOutput: BufferSource | null,
+    configOverride: { url: string; hasApiKey: boolean },
+    getApiKeyOverride: () => Promise<string | null>
+) => {
+    // Use only the passed config and getApiKey, no internal hook
+    const config = useMemo(() => {
+        console.log('WebSocket hook using config:', configOverride)
+        return configOverride
+    }, [configOverride.url, configOverride.hasApiKey])
+    const getApiKey = getApiKeyOverride
+
+    // Use ref to ensure callbacks always get current config
+    const configRef = useRef(config)
+    configRef.current = config
+
+    // Debug the config state
+    // const hookId = useRef(Math.random().toString(36).substring(7))
     const [connection, setConnection] = useState<Connection | null>(null)
     const [isConnected, setIsConnected] = useState(false)
     const [entities, setEntities] = useState<Record<string, HassEntity>>({})
@@ -64,22 +80,29 @@ export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
     const [entityCache, setEntityCache] = useState<EntityCache | null>(null)
 
     const connect = useCallback(async (): Promise<boolean> => {
-        if (!config.url || !config.hasApiKey) {
-            console.error('Home Assistant not configured')
+        const currentConfig = configRef.current
+        if (!currentConfig.url || !currentConfig.hasApiKey) {
+            console.error('Home Assistant not configured', {
+                url: currentConfig.url,
+                hasApiKey: currentConfig.hasApiKey,
+                prfOutputExists: !!prfOutput,
+            })
             return false
         }
 
         try {
+            console.log('About to call getApiKey with config:', { url: currentConfig.url, hasApiKey: currentConfig.hasApiKey })
             const apiKey = await getApiKey()
+            console.log('getApiKey result:', apiKey ? 'SUCCESS (key retrieved)' : 'FAILED (no key)')
             if (!apiKey) {
-                console.error('Failed to get API key')
+                console.error('Failed to get API key - this might be the real issue')
                 return false
             }
 
-            console.log('Connecting to Home Assistant WebSocket:', config.url)
+            console.log('Connecting to Home Assistant WebSocket:', currentConfig.url)
 
             // Create authentication object
-            const auth = createLongLivedTokenAuth(config.url, apiKey)
+            const auth = createLongLivedTokenAuth(currentConfig.url, apiKey)
 
             const conn = await createConnection({ auth })
 
@@ -129,7 +152,7 @@ export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
             connectionRef.current = null
             return false
         }
-    }, [config.url, config.hasApiKey, getApiKey])
+    }, [getApiKey])
 
     const disconnect = useCallback(() => {
         if (connectionRef.current) {
@@ -211,6 +234,16 @@ export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
 
     const getEntities = useCallback(async (): Promise<HAToolResult> => {
         try {
+            const currentConfig = configRef.current
+            console.log(`getEntities called, using current config:`, { 
+                config: currentConfig,
+                prfOutput: !!prfOutput
+            })
+
+            if (!currentConfig.url || !currentConfig.hasApiKey) {
+                return { success: false, error: 'Home Assistant not configured' }
+            }
+
             if (!isConnected || !connection) {
                 const connected = await connect()
                 if (!connected) {
@@ -270,7 +303,7 @@ export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
                 return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
             }
         },
-        [isConnected, connection, entities, connect]
+        [isConnected, connection, entities, connect, config]
     )
 
     const callHAService = useCallback(
@@ -299,7 +332,7 @@ export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
                 return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
             }
         },
-        [isConnected, connection, connect]
+        [isConnected, connection, connect, config]
     )
 
     const findEntitiesByContext = useCallback(
@@ -354,7 +387,7 @@ export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
                 return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
             }
         },
-        [getEntities]
+        [getEntities, config]
     )
 
     const testConnection = useCallback(async (): Promise<HAToolResult> => {
@@ -374,7 +407,7 @@ export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
             console.error('Connection test failed:', error)
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
         }
-    }, [connect, haConfig])
+    }, [connect, haConfig, config])
 
     // Create connection status for the UI component
     const connectionStatus = {
@@ -392,10 +425,12 @@ export const useHomeAssistantWebSocket = (prfOutput: BufferSource | null) => {
 
     // Auto-connect when config changes
     useEffect(() => {
-        if (config.url && config.hasApiKey && !isConnected) {
+        const currentConfig = configRef.current
+        if (currentConfig.url && currentConfig.hasApiKey && !isConnected) {
+            console.log('Attempting auto-connect...')
             connect()
         }
-    }, [config.url, config.hasApiKey, isConnected, connect])
+    }, [config, isConnected, connect])
 
     // Cleanup on unmount
     useEffect(() => {

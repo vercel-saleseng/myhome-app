@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,9 +23,9 @@ export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfi
     const { config, isLoading, error, saveConfig, clearConfig, canSave } = useHomeAssistantConfig(prfOutput)
 
     // Initialize form with current config
-    useState(() => {
+    useEffect(() => {
         setUrl(config.url)
-    })
+    }, [config.url])
 
     const handleSave = async () => {
         if (!url.trim()) {

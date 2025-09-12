@@ -1,6 +1,5 @@
 import { convertToModelMessages, streamText, type UIMessage } from 'ai'
 import { gateway } from '@ai-sdk/gateway'
-import { openai } from '@ai-sdk/openai'
 import { type NextRequest } from 'next/server'
 import HomeAssistantToolset from '@/lib/home-assistant-toolset'
 
@@ -33,7 +32,7 @@ export async function POST(request: NextRequest) {
     console.log('Chat request received with', messages?.length, 'messages')
 
     const result = streamText({
-        model: openai('gpt-4o-mini'),
+        model: gateway('openai/gpt-4o-mini'),
         system: SYSTEM_PROMPT,
         messages: convertToModelMessages(messages),
         tools: HomeAssistantToolset,

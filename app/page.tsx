@@ -9,11 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AppHeader } from '@/components/app-header'
 import { PasskeyRegistration } from '@/components/passkey-registration'
 import { HomeAssistantConfig } from '@/components/home-assistant-config'
-import { HomeAssistantStatus } from '@/components/home-assistant-status'
 import { LoadingScreen } from '@/components/loading-screen'
 import { ModernChatInterface } from '@/components/modern-chat-interface'
 import { usePasskey } from '@/hooks/use-passkey'
-import { useHomeAssistantConfig } from '@/hooks/use-home-assistant-config'
 
 const LoginPage = ({
     onRegisterPasskey,

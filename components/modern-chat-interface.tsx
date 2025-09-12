@@ -4,7 +4,7 @@ import type React from 'react'
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, UIMessage } from 'ai'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -28,8 +28,8 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
     const [pendingConfirmation, setPendingConfirmation] = useState<any>(null)
     const [showConfig, setShowConfig] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
-    const haTools = useHomeAssistantWebSocket(prfOutput)
-    const { config } = useHomeAssistantConfig(prfOutput)
+    const { config, getApiKey } = useHomeAssistantConfig(prfOutput)
+    const haTools = useHomeAssistantWebSocket(prfOutput, config, getApiKey)
 
     const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
         useSpeechRecognition()
@@ -46,7 +46,7 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
             api: '/api/chat',
         }),
         sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-        initialMessages: [
+        messages: [
             {
                 id: 'welcome',
                 role: 'assistant',
@@ -57,7 +57,7 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
                     },
                 ],
             },
-        ],
+        ] as UIMessage[],
         async onToolCall({ toolCall }) {
             // Check if it's a dynamic tool first for proper type narrowing
             if (toolCall.dynamic) {

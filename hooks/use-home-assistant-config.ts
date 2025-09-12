@@ -51,8 +51,9 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
             }
         }
 
+        console.log('Loading HA config:', { url: storedUrl, hasApiKey, canEncrypt })
         setConfig({ url: storedUrl, hasApiKey })
-    }, [])
+    }, [canEncrypt])
 
     const saveConfig = async (url: string, apiKey: string): Promise<void> => {
         if (!canEncrypt) {
@@ -97,19 +98,27 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
 
     const getApiKey = async (): Promise<string | null> => {
         if (!canEncrypt || !config.hasApiKey) {
+            console.log('Cannot get API key:', { canEncrypt, hasApiKey: config.hasApiKey })
             return null
         }
 
         try {
             const storedSecrets = localStorage.getItem('encrypted-secrets')
-            if (!storedSecrets) return null
+            if (!storedSecrets) {
+                console.log('No stored secrets found')
+                return null
+            }
 
             const secrets = JSON.parse(storedSecrets)
             const apiKeySecret = secrets.find((secret: any) => secret.name === HA_API_KEY_SECRET_NAME)
 
-            if (!apiKeySecret) return null
+            if (!apiKeySecret) {
+                console.log('API key secret not found')
+                return null
+            }
 
             const decrypted = await decryptSecret(apiKeySecret.id)
+            console.log('Successfully decrypted API key')
             return decrypted.data
         } catch (err) {
             console.error('Failed to decrypt API key:', err)
