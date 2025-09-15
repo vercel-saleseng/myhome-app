@@ -10,17 +10,18 @@ import { Badge } from '@/components/ui/badge'
 import { Home, Key, Shield, AlertCircle, Check, Settings } from 'lucide-react'
 import { useHomeAssistantConfig } from '@/hooks/use-home-assistant-config'
 
-interface HomeAssistantConfigProps {
-    prfOutput: BufferSource | null
+export function HomeAssistantConfig({
+    haConfigHook,
+    className,
+}: {
+    haConfigHook: ReturnType<typeof useHomeAssistantConfig>
     className?: string
-}
-
-export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfigProps) {
+}) {
     const [url, setUrl] = useState('')
     const [apiKey, setApiKey] = useState('')
     const [showApiKey, setShowApiKey] = useState(false)
 
-    const { config, error, saveConfig, clearConfig, canSave, isBusy } = useHomeAssistantConfig(prfOutput)
+    const { config, error, saveConfig, clearConfig, canSave, isBusy } = haConfigHook
 
     // Initialize form with current config
     useEffect(() => {

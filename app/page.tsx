@@ -12,6 +12,7 @@ import { HomeAssistantConfig } from '@/components/home-assistant-config'
 import { LoadingScreen } from '@/components/loading-screen'
 import { ModernChatInterface } from '@/components/modern-chat-interface'
 import { usePasskey } from '@/hooks/use-passkey'
+import { useHomeAssistantConfig } from '@/hooks/use-home-assistant-config'
 
 const LoginPage = ({
     onRegisterPasskey,
@@ -123,7 +124,12 @@ const LoginPage = ({
                     )}
 
                     <div className="space-y-3">
-                        <Button onClick={onAuthenticatePasskey} className="w-full h-12 text-base" disabled={isLoading}>
+                        <Button
+                            onClick={onAuthenticatePasskey}
+                            className="w-full h-12 text-base"
+                            disabled={isLoading}
+                            autoFocus={true}
+                        >
                             <Key className="w-5 h-5 mr-3" />
                             {isLoading ? 'Authenticating...' : 'Sign in with Passkey'}
                         </Button>
@@ -156,6 +162,7 @@ const MainInterface = ({
     prfOutput: BufferSource | null
 }) => {
     const [showConfig, setShowConfig] = useState(false)
+    const haConfigHook = useHomeAssistantConfig(prfOutput)
 
     return (
         <div className="min-h-screen bg-background">
@@ -171,7 +178,7 @@ const MainInterface = ({
                         <DialogHeader>
                             <DialogTitle>Home Assistant Configuration</DialogTitle>
                         </DialogHeader>
-                        <HomeAssistantConfig prfOutput={prfOutput} />
+                        <HomeAssistantConfig haConfigHook={haConfigHook} />
                     </DialogContent>
                 </Dialog>
 
@@ -181,7 +188,7 @@ const MainInterface = ({
             </AppHeader>
 
             <main className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] p-4">
-                <ModernChatInterface prfOutput={prfOutput} />
+                <ModernChatInterface haConfigHook={haConfigHook} />
             </main>
         </div>
     )

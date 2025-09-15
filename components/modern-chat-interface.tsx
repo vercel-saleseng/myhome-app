@@ -19,16 +19,12 @@ import { VoiceButton } from '@/components/voice-button'
 import { HomeAssistantStatus } from '@/components/home-assistant-status'
 import { HomeAssistantConfig } from '@/components/home-assistant-config'
 
-interface ChatInterfaceProps {
-    prfOutput: BufferSource | null
-}
-
-export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
+export function ModernChatInterface({ haConfigHook }: { haConfigHook: ReturnType<typeof useHomeAssistantConfig> }) {
     const [input, setInput] = useState('')
     const [pendingConfirmation, setPendingConfirmation] = useState<any>(null)
     const [showConfig, setShowConfig] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
-    const { config, getApiKey } = useHomeAssistantConfig(prfOutput)
+    const { config, getApiKey } = haConfigHook
     const haTools = useHomeAssistantWebSocket(config, getApiKey)
 
     const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
@@ -350,7 +346,7 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
                     <DialogHeader>
                         <DialogTitle>Home Assistant Configuration</DialogTitle>
                     </DialogHeader>
-                    <HomeAssistantConfig prfOutput={prfOutput} />
+                    <HomeAssistantConfig haConfigHook={haConfigHook} />
                 </DialogContent>
             </Dialog>
         </div>

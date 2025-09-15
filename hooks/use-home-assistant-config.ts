@@ -27,7 +27,6 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
     const cryptoBaseMessage = 'myhome-assistant-secret-encryption-key-v1'
 
     useEffect(() => {
-        console.debug('CALLED useHomeAssistantConfig useEffect')
         setIsBusy(true)
 
         // IIFE

@@ -229,8 +229,8 @@ export const useHomeAssistantWebSocket = (config: { url: string | null }, getApi
     }
 
     const getEntities = useCallback(async (): Promise<HAToolResult> => {
+        console.log('getEntities', entities)
         try {
-            console.log('HERE', entities)
             // Filter and categorize relevant entities
             const relevantEntities = Object.values(entities)
                 .filter((entity: HassEntity) => {
