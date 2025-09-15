@@ -2,7 +2,7 @@
 
 import type React from 'react'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, UIMessage } from 'ai'
 import { Button } from '@/components/ui/button'
@@ -37,6 +37,62 @@ export function ModernChatInterface({ haConfigHook }: { haConfigHook: ReturnType
         }
     }
 
+    // Use a ref to always get the latest haTools
+    const haToolsRef = useRef(haTools)
+    haToolsRef.current = haTools
+
+    // Use ref to store addToolResult to avoid circular dependency
+    const addToolResultRef = useRef<any>(null)
+
+    const onToolCall = useCallback(async ({ toolCall }: any) => {
+        // Check if it's a dynamic tool first for proper type narrowing
+        if (toolCall.dynamic) {
+            return
+        }
+
+        console.log('Executing tool:', toolCall.toolName, toolCall.input)
+
+        // Use the ref to get the latest haTools instance
+        const currentHaTools = haToolsRef.current
+        let result
+        switch (toolCall.toolName) {
+            case 'get_entities':
+                result = await currentHaTools.getEntities()
+                break
+            case 'get_entity_state':
+                result = await currentHaTools.getEntityState((toolCall.input as any).entityId)
+                break
+            case 'find_entities_by_context':
+                result = await currentHaTools.findEntitiesByContext((toolCall.input as any).context)
+                break
+            case 'request_confirmation':
+                setPendingConfirmation(toolCall.input)
+                result = {
+                    success: true,
+                    message: `Confirmation requested: ${(toolCall.input as any).action}`,
+                    requiresUserInput: true,
+                }
+                break
+            case 'call_service':
+                result = await currentHaTools.callService(
+                    (toolCall.input as any).domain,
+                    (toolCall.input as any).service,
+                    (toolCall.input as any).entityId
+                )
+                break
+            default:
+                result = { success: false, error: `Unknown tool: ${toolCall.toolName}` }
+        }
+
+        if (addToolResultRef.current) {
+            addToolResultRef.current({
+                tool: toolCall.toolName,
+                toolCallId: toolCall.toolCallId,
+                output: result,
+            })
+        }
+    }, [])
+
     const { messages, addToolResult, sendMessage, status } = useChat({
         transport: new DefaultChatTransport({
             api: '/api/chat',
@@ -54,51 +110,11 @@ export function ModernChatInterface({ haConfigHook }: { haConfigHook: ReturnType
                 ],
             },
         ] as UIMessage[],
-        async onToolCall({ toolCall }) {
-            // Check if it's a dynamic tool first for proper type narrowing
-            if (toolCall.dynamic) {
-                return
-            }
-
-            console.log('Executing tool:', toolCall.toolName, toolCall.input)
-
-            let result
-            switch (toolCall.toolName) {
-                case 'get_entities':
-                    result = await haTools.getEntities()
-                    break
-                case 'get_entity_state':
-                    result = await haTools.getEntityState(toolCall.input.entityId)
-                    break
-                case 'find_entities_by_context':
-                    result = await haTools.findEntitiesByContext(toolCall.input.context)
-                    break
-                case 'request_confirmation':
-                    setPendingConfirmation(toolCall.input)
-                    result = {
-                        success: true,
-                        message: `Confirmation requested: ${toolCall.input.action}`,
-                        requiresUserInput: true,
-                    }
-                    break
-                case 'call_service':
-                    result = await haTools.callService(
-                        toolCall.input.domain,
-                        toolCall.input.service,
-                        toolCall.input.entityId
-                    )
-                    break
-                default:
-                    result = { success: false, error: `Unknown tool: ${toolCall.toolName}` }
-            }
-
-            addToolResult({
-                tool: toolCall.toolName,
-                toolCallId: toolCall.toolCallId,
-                output: result,
-            })
-        },
+        onToolCall,
     })
+
+    // Update the ref with the current addToolResult function
+    addToolResultRef.current = addToolResult
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -132,32 +148,38 @@ export function ModernChatInterface({ haConfigHook }: { haConfigHook: ReturnType
 
         if (confirmed) {
             try {
-                const result = await haTools.callService(
+                const result = await haToolsRef.current.callService(
                     pendingConfirmation.domain,
                     pendingConfirmation.service,
                     pendingConfirmation.entityId
                 )
 
-                addToolResult({
-                    tool: 'request_confirmation',
-                    toolCallId: 'confirmation-' + Date.now(),
-                    output: result.success
-                        ? `Successfully ${pendingConfirmation.action} ${pendingConfirmation.entity}.`
-                        : `Failed to ${pendingConfirmation.action}: ${result.error}`,
-                })
+                if (addToolResultRef.current) {
+                    addToolResultRef.current({
+                        tool: 'request_confirmation',
+                        toolCallId: 'confirmation-' + Date.now(),
+                        output: result.success
+                            ? `Successfully ${pendingConfirmation.action} ${pendingConfirmation.entity}.`
+                            : `Failed to ${pendingConfirmation.action}: ${result.error}`,
+                    })
+                }
             } catch (error) {
-                addToolResult({
-                    tool: 'request_confirmation',
-                    toolCallId: 'confirmation-' + Date.now(),
-                    output: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                })
+                if (addToolResultRef.current) {
+                    addToolResultRef.current({
+                        tool: 'request_confirmation',
+                        toolCallId: 'confirmation-' + Date.now(),
+                        output: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    })
+                }
             }
         } else {
-            addToolResult({
-                tool: 'request_confirmation',
-                toolCallId: 'confirmation-' + Date.now(),
-                output: 'Action cancelled.',
-            })
+            if (addToolResultRef.current) {
+                addToolResultRef.current({
+                    tool: 'request_confirmation',
+                    toolCallId: 'confirmation-' + Date.now(),
+                    output: 'Action cancelled.',
+                })
+            }
         }
 
         setPendingConfirmation(null)
