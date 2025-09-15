@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSecretStorage } from './use-secret-storage'
+import { useState, useEffect, useMemo } from 'react'
+import CryptoUtils, { SecretNotFoundError } from '@/lib/crypto-utils'
 
 interface HomeAssistantConfig {
-    url: string
-    hasApiKey: boolean
+    url: string | null
 }
 
 interface ConnectionStatus {
@@ -20,8 +19,10 @@ interface ConnectionStatus {
 }
 
 export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
-    const [config, setConfig] = useState<HomeAssistantConfig>({ url: '', hasApiKey: false })
-    const [isLoading, setIsLoading] = useState(false)
+    const [config, setConfig] = useState<HomeAssistantConfig>({ url: null })
+    const [cryptoUtils, setCryptoUtils] = useState<CryptoUtils | null>()
+    const [apiKey, setApiKey] = useState<string | null>()
+    const [isBusy, setIsBusy] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
     const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
         isConnected: false,
@@ -30,128 +31,128 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
         lastChecked: null,
     })
 
-    const { encryptSecret, decryptSecret, deleteSecret, canEncrypt } = useSecretStorage(prfOutput)
+    const secretUrl = 'ha-url'
+    const secretAPIKey = 'ha-apikey'
 
-    const HA_URL_KEY = 'home-assistant-url'
-    const HA_API_KEY_SECRET_NAME = 'Home Assistant API Key'
+    // This is not a secret, and it's just use for key binding purposes
+    const cryptoBaseMessage = 'myhome-assistant-secret-encryption-key-v1'
 
     useEffect(() => {
-        // Load URL from localStorage (plain text)
-        const storedUrl = localStorage.getItem(HA_URL_KEY) || ''
+        console.debug('CALLED useHomeAssistantConfig useEffect')
+        setIsBusy(true)
 
-        // Check if API key exists (encrypted)
-        const storedSecrets = localStorage.getItem('encrypted-secrets')
-        let hasApiKey = false
-        if (storedSecrets) {
-            try {
-                const secrets = JSON.parse(storedSecrets)
-                hasApiKey = secrets.some((secret: any) => secret.name === HA_API_KEY_SECRET_NAME)
-            } catch (err) {
-                console.error('Failed to check for API key:', err)
+        // IIFE
+        ;(async () => {
+            // If we don't have the output from the PRF, it means we don't have a (valid) passkey authentication
+            if (!prfOutput) {
+                setError('PRF data is not available. Please authenticate with your Passkey first.')
+                setCryptoUtils(null)
+                setConfig({ url: null })
+                setApiKey(null)
+                return
             }
+
+            // Init the CryptoUtils
+            const cu = new CryptoUtils(prfOutput, cryptoBaseMessage)
+            setCryptoUtils(cu)
+
+            // Try to get the URL
+            let urlDec: string
+            try {
+                urlDec = await cu.Get(secretUrl)
+            } catch (err) {
+                if (err instanceof SecretNotFoundError) {
+                    // The secret was just not found (instance is not fully configured): nothing to do here
+                    setConfig({ url: null })
+                    setApiKey(null)
+                    return
+                }
+
+                console.error('Error retrieving URL secret:', err)
+                setError(`Error retrieving URL secret: ${err}`)
+                return
+            }
+
+            // Now try to get the API key
+            let apiKeyDec: string
+            try {
+                apiKeyDec = await cu.Get(secretAPIKey)
+            } catch (err) {
+                if (err instanceof SecretNotFoundError) {
+                    // The secret was just not found (instance is not fully configured): nothing to do here
+                    setConfig({ url: null })
+                    setApiKey(null)
+                    return
+                }
+
+                console.error('Error retrieving API Key secret:', err)
+                setError(`Error retrieving API Key secret: ${err}`)
+                return
+            }
+
+            // We have all secrets!
+            setConfig({ url: urlDec })
+            setApiKey(apiKeyDec)
+        })()
+            // Set isBusy to false, no matter what the result of the promise
+            .then(() => setIsBusy(false))
+    }, [prfOutput])
+
+    const saveConfig = async (urlVal: string, apiKeyVal: string): Promise<void> => {
+        if (!cryptoUtils) {
+            throw new Error('Please authenticate with your Passkey first')
+        }
+        if (!urlVal) {
+            throw new Error('URL is empty')
+        }
+        if (!apiKeyVal) {
+            throw new Error('API key is empty')
         }
 
-        console.log('Loading HA config:', { url: storedUrl, hasApiKey, canEncrypt })
-        setConfig({ url: storedUrl, hasApiKey })
-    }, [canEncrypt])
-
-    const saveConfig = async (url: string, apiKey: string): Promise<void> => {
-        if (!canEncrypt) {
-            throw new Error('Cannot encrypt API key. Please authenticate with your passkey first.')
-        }
-
-        setIsLoading(true)
         setError(null)
+        setIsBusy(true)
 
         try {
-            // Save URL to localStorage (plain text)
-            localStorage.setItem(HA_URL_KEY, url)
+            cryptoUtils.Save(secretUrl, urlVal)
+            cryptoUtils.Save(secretAPIKey, apiKeyVal)
 
-            // Delete existing API key if it exists
-            if (config.hasApiKey) {
-                const storedSecrets = localStorage.getItem('encrypted-secrets')
-                if (storedSecrets) {
-                    const secrets = JSON.parse(storedSecrets)
-                    const existingSecret = secrets.find((secret: any) => secret.name === HA_API_KEY_SECRET_NAME)
-                    if (existingSecret) {
-                        await deleteSecret(existingSecret.id)
-                    }
-                }
-            }
+            setConfig({ url: urlVal })
+            setApiKey(apiKeyVal)
 
-            // Encrypt and store API key
-            if (apiKey.trim()) {
-                await encryptSecret(HA_API_KEY_SECRET_NAME, apiKey.trim())
-            }
-
-            setConfig({ url, hasApiKey: !!apiKey.trim() })
-            console.log('Home Assistant configuration saved successfully')
+            console.info('Home Assistant configuration saved successfully')
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to save configuration'
             setError(errorMessage)
             console.error('Failed to save Home Assistant config:', err)
+
+            // Remove values that may have been saved
+            clearConfig()
+
             throw new Error(errorMessage)
         } finally {
-            setIsLoading(false)
+            setIsBusy(false)
         }
     }
 
-    const getApiKey = async (): Promise<string | null> => {
-        if (!canEncrypt || !config.hasApiKey) {
-            console.log('Cannot get API key:', { canEncrypt, hasApiKey: config.hasApiKey })
-            return null
-        }
-
-        try {
-            const storedSecrets = localStorage.getItem('encrypted-secrets')
-            if (!storedSecrets) {
-                console.log('No stored secrets found')
-                return null
-            }
-
-            const secrets = JSON.parse(storedSecrets)
-            const apiKeySecret = secrets.find((secret: any) => secret.name === HA_API_KEY_SECRET_NAME)
-
-            if (!apiKeySecret) {
-                console.log('API key secret not found')
-                return null
-            }
-
-            const decrypted = await decryptSecret(apiKeySecret.id)
-            console.log('Successfully decrypted API key')
-            return decrypted.data
-        } catch (err) {
-            console.error('Failed to decrypt API key:', err)
-            return null
-        }
+    const getApiKey = (): string | null => {
+        return apiKey || null
     }
 
     const clearConfig = (): void => {
-        localStorage.removeItem(HA_URL_KEY)
-        setConfig({ url: '', hasApiKey: false })
+        setConfig({ url: null })
+        setApiKey(null)
 
-        // Also delete the encrypted API key
-        const storedSecrets = localStorage.getItem('encrypted-secrets')
-        if (storedSecrets) {
-            try {
-                const secrets = JSON.parse(storedSecrets)
-                const apiKeySecret = secrets.find((secret: any) => secret.name === HA_API_KEY_SECRET_NAME)
-                if (apiKeySecret) {
-                    deleteSecret(apiKeySecret.id)
-                }
-            } catch (err) {
-                console.error('Failed to delete API key:', err)
-            }
-        }
+        cryptoUtils?.Delete(secretUrl)
+        cryptoUtils?.Delete(secretAPIKey)
     }
 
     const testConnection = async (): Promise<ConnectionStatus> => {
-        if (!config.url || !config.hasApiKey) {
+        if (!config.url || !apiKey) {
             const status: ConnectionStatus = {
                 isConnected: false,
                 isLoading: false,
                 error: 'Configuration incomplete',
-                lastChecked: new Date(),
+                lastChecked: null,
             }
             setConnectionStatus(status)
             return status
@@ -160,11 +161,6 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
         setConnectionStatus((prev) => ({ ...prev, isLoading: true, error: null }))
 
         try {
-            const apiKey = await getApiKey()
-            if (!apiKey) {
-                throw new Error('Failed to decrypt API key')
-            }
-
             // Test connection to Home Assistant API
             const response = await fetch(`${config.url}/api/`, {
                 method: 'GET',
@@ -173,13 +169,13 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                     'Content-Type': 'application/json',
                 },
                 // Add timeout to prevent hanging
-                signal: AbortSignal.timeout(10000),
+                signal: AbortSignal.timeout(15000),
             })
 
             if (!response.ok) {
-                if (response.status === 401) {
+                if (response.status == 401) {
                     throw new Error('Invalid API key')
-                } else if (response.status === 404) {
+                } else if (response.status == 404) {
                     throw new Error('Home Assistant API not found')
                 } else {
                     throw new Error(`Connection failed (${response.status})`)
@@ -227,31 +223,22 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
     }
 
     useEffect(() => {
-        if (config.url && config.hasApiKey && canEncrypt) {
-            // Debounce the connection test
-            const timer = setTimeout(() => {
-                testConnection()
-            }, 1000)
-            return () => clearTimeout(timer)
-        } else {
-            setConnectionStatus({
-                isConnected: false,
-                isLoading: false,
-                error: config.url ? 'API key not configured' : 'URL not configured',
-                lastChecked: new Date(),
-            })
-        }
-    }, [config.url, config.hasApiKey, canEncrypt])
+        // Debounce the connection test
+        const timer = setTimeout(() => {
+            testConnection()
+        }, 1000)
+        return () => clearTimeout(timer)
+    }, [config.url])
 
     return {
         config,
-        isLoading,
         error,
         connectionStatus,
         saveConfig,
         getApiKey,
         clearConfig,
         testConnection,
-        canSave: canEncrypt,
+        isBusy,
+        canSave: !!cryptoUtils,
     }
 }

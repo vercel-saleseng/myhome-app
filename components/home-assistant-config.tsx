@@ -20,15 +20,15 @@ export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfi
     const [apiKey, setApiKey] = useState('')
     const [showApiKey, setShowApiKey] = useState(false)
 
-    const { config, isLoading, error, saveConfig, clearConfig, canSave } = useHomeAssistantConfig(prfOutput)
+    const { config, error, saveConfig, clearConfig, canSave, isBusy } = useHomeAssistantConfig(prfOutput)
 
     // Initialize form with current config
     useEffect(() => {
-        setUrl(config.url)
+        setUrl(config.url || '')
     }, [config.url])
 
     const handleSave = async () => {
-        if (!url.trim()) {
+        if (!url.trim() || !apiKey.trim()) {
             return
         }
 
@@ -62,9 +62,9 @@ export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfi
                         <Shield className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-foreground mb-2">Configuration Unavailable</h3>
+                        <h3 className="font-semibold text-foreground mb-2">Passkey Unavailable</h3>
                         <p className="text-sm text-muted-foreground text-pretty">
-                            Please authenticate with your passkey to configure Home Assistant.
+                            Please authenticate with your Passkey to configure Home Assistant.
                         </p>
                     </div>
                 </div>
@@ -79,14 +79,14 @@ export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfi
                     <div className="flex items-center space-x-2">
                         <Home className="w-5 h-5 text-primary" />
                         <h3 className="font-semibold text-foreground">Home Assistant Configuration</h3>
-                        {config.hasApiKey && (
+                        {config.url && (
                             <Badge variant="secondary" className="text-xs">
                                 <Shield className="w-3 h-3 mr-1" />
                                 Configured
                             </Badge>
                         )}
                     </div>
-                    {(config.url || config.hasApiKey) && (
+                    {config.url && (
                         <Button size="sm" variant="outline" onClick={handleClear}>
                             Clear Config
                         </Button>
@@ -132,9 +132,7 @@ export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfi
                             id="ha-api-key"
                             type={showApiKey ? 'text' : 'password'}
                             placeholder={
-                                config.hasApiKey
-                                    ? '••••••••••••••••••••••••••••••••'
-                                    : 'Enter your Home Assistant API key'
+                                config.url ? '••••••••••••••••••••••••••••••••' : 'Enter your Home Assistant API key'
                             }
                             value={apiKey}
                             onChange={(e) => setApiKey(e.target.value)}
@@ -145,16 +143,12 @@ export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfi
                         </p>
                     </div>
 
-                    <Button onClick={handleSave} className="w-full" disabled={isLoading || !url.trim()}>
-                        {isLoading
-                            ? 'Saving...'
-                            : config.url || config.hasApiKey
-                              ? 'Update Configuration'
-                              : 'Save Configuration'}
+                    <Button onClick={handleSave} className="w-full" disabled={isBusy || !url.trim()}>
+                        {isBusy ? 'Saving...' : config.url ? 'Update Configuration' : 'Save Configuration'}
                     </Button>
                 </div>
 
-                {(config.url || config.hasApiKey) && (
+                {config.url && (
                     <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                         <h4 className="font-medium text-sm text-foreground">Current Configuration</h4>
                         <div className="space-y-1 text-xs">
@@ -165,14 +159,8 @@ export function HomeAssistantConfig({ prfOutput, className }: HomeAssistantConfi
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">API Key:</span>
                                 <span className="flex items-center space-x-1">
-                                    {config.hasApiKey ? (
-                                        <>
-                                            <Check className="w-3 h-3 text-green-600" />
-                                            <span className="text-green-600">Configured</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-muted-foreground">Not set</span>
-                                    )}
+                                    <Check className="w-3 h-3 text-green-600" />
+                                    <span className="text-green-600">Configured</span>
                                 </span>
                             </div>
                         </div>

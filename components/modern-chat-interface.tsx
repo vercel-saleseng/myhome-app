@@ -228,17 +228,13 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
         )
     }
 
-    const isProcessing = useMemo(() => !(['ready', 'error'].includes(status)), [status])
+    const isProcessing = useMemo(() => !['ready', 'error'].includes(status), [status])
 
     return (
         <div className="flex flex-col h-full max-w-4xl mx-auto">
             {/* Voice Button Section */}
             <div className="flex items-center justify-center py-8">
-                <VoiceButton
-                    isListening={isListening}
-                    isProcessing={isProcessing}
-                    onToggle={toggleListening}
-                />
+                <VoiceButton isListening={isListening} isProcessing={isProcessing} onToggle={toggleListening} />
             </div>
 
             <Card className="flex-1 flex flex-col min-h-0">
@@ -328,11 +324,7 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
                             )}
                         </div>
 
-                        <Button
-                            type="submit"
-                            size="icon"
-                            disabled={!input.trim() || isProcessing || isListening}
-                        >
+                        <Button type="submit" size="icon" disabled={!input.trim() || isProcessing || isListening}>
                             <Send className="w-4 h-4" />
                         </Button>
                     </div>

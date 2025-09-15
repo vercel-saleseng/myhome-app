@@ -11,9 +11,7 @@ import {
     type Connection,
     type HassEntity,
     type HassConfig,
-    type Auth,
 } from 'home-assistant-js-websocket'
-// import { useHomeAssistantConfig } from './use-home-assistant-config' // No longer needed
 
 export interface HAEntity {
     entity_id: string
@@ -91,7 +89,10 @@ export const useHomeAssistantWebSocket = (
         }
 
         try {
-            console.log('About to call getApiKey with config:', { url: currentConfig.url, hasApiKey: currentConfig.hasApiKey })
+            console.log('About to call getApiKey with config:', {
+                url: currentConfig.url,
+                hasApiKey: currentConfig.hasApiKey,
+            })
             const apiKey = await getApiKey()
             console.log('getApiKey result:', apiKey ? 'SUCCESS (key retrieved)' : 'FAILED (no key)')
             if (!apiKey) {
@@ -235,9 +236,9 @@ export const useHomeAssistantWebSocket = (
     const getEntities = useCallback(async (): Promise<HAToolResult> => {
         try {
             const currentConfig = configRef.current
-            console.log(`getEntities called, using current config:`, { 
+            console.log(`getEntities called, using current config:`, {
                 config: currentConfig,
-                prfOutput: !!prfOutput
+                prfOutput: !!prfOutput,
             })
 
             if (!currentConfig.url || !currentConfig.hasApiKey) {
