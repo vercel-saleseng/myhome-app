@@ -2,51 +2,24 @@
 
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Loader2, Settings, Wifi, WifiOff } from 'lucide-react'
-
-interface ConnectionStatus {
-    isConnected: boolean
-    isLoading: boolean
-    error: string | null
-    lastChecked: Date | null
-    haInfo?: {
-        version?: string
-        name?: string
-    }
-}
-
-interface HomeAssistantStatusProps {
-    connectionStatus: ConnectionStatus
-    hasConfig: boolean
-    onOpenConfig: () => void
-    onTestConnection: () => void
-    className?: string
-}
+import { useEffect } from 'react'
 
 export function HomeAssistantStatus({
     connectionStatus,
-    hasConfig,
+    config,
     onOpenConfig,
     onTestConnection,
     className,
-}: HomeAssistantStatusProps) {
+}: {
+    connectionStatus: ConnectionStatus
+    config: { url: string | null }
+    onOpenConfig: () => void
+    onTestConnection: () => void
+    className?: string
+}) {
     const { isConnected, isLoading, error, haInfo, lastChecked } = connectionStatus
 
-    if (isLoading || lastChecked === null) {
-        return (
-            <div
-                className={`p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 ${className}`}
-            >
-                <div className="flex items-center space-x-2">
-                    <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-                    <span className="text-sm text-blue-800 dark:text-blue-200">
-                        Testing Home Assistant connection...
-                    </span>
-                </div>
-            </div>
-        )
-    }
-
-    if (!hasConfig) {
+    if (!config.url) {
         return (
             <div
                 className={`p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 ${className}`}
@@ -62,6 +35,21 @@ export function HomeAssistantStatus({
                         <Settings className="w-3 h-3 mr-1" />
                         Configure
                     </Button>
+                </div>
+            </div>
+        )
+    }
+
+    if (isLoading || lastChecked === null) {
+        return (
+            <div
+                className={`p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 ${className}`}
+            >
+                <div className="flex items-center space-x-2">
+                    <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                    <span className="text-sm text-blue-800 dark:text-blue-200">
+                        Testing Home Assistant connection...
+                    </span>
                 </div>
             </div>
         )

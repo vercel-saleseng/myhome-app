@@ -1,3 +1,17 @@
+/**
+ * Home Assistant connection status
+ */
+interface ConnectionStatus {
+    isConnected: boolean
+    isLoading: boolean
+    error: string | null
+    lastChecked: Date | null
+    haInfo?: {
+        version?: string
+        name?: string
+    }
+}
+
 // Speech Recognition Web API types
 interface Window {
     SpeechRecognition: new () => SpeechRecognition

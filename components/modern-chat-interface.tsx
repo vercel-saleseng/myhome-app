@@ -29,7 +29,7 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
     const [showConfig, setShowConfig] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
     const { config, getApiKey } = useHomeAssistantConfig(prfOutput)
-    const haTools = useHomeAssistantWebSocket(prfOutput, config, getApiKey)
+    const haTools = useHomeAssistantWebSocket(config, getApiKey)
 
     const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
         useSpeechRecognition()
@@ -329,12 +329,6 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
                         </Button>
                     </div>
 
-                    {!haTools.isConfigured && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                            Configure Home Assistant in settings to control devices
-                        </p>
-                    )}
-
                     {error && <p className="text-xs text-red-500 mt-2">Voice recognition error: {error}</p>}
                 </form>
             </Card>
@@ -343,7 +337,7 @@ export function ModernChatInterface({ prfOutput }: ChatInterfaceProps) {
             <div className="mt-4">
                 <HomeAssistantStatus
                     connectionStatus={haTools.connectionStatus}
-                    hasConfig={!!(config.url && config.hasApiKey)}
+                    config={config}
                     onOpenConfig={() => setShowConfig(true)}
                     onTestConnection={haTools.testConnection}
                     className="w-full max-w-64 mx-auto"

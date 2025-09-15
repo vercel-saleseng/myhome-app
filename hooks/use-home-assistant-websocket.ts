@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import {
     createConnection,
     subscribeEntities,
@@ -46,70 +46,56 @@ export interface HAToolResult {
     error?: string
 }
 
-interface EntityCache {
-    entities: CategorizedEntity[]
-    lastUpdated: number
-    ttl: number
-}
-
-export const useHomeAssistantWebSocket = (
-    prfOutput: BufferSource | null,
-    configOverride: { url: string; hasApiKey: boolean },
-    getApiKeyOverride: () => Promise<string | null>
-) => {
-    // Use only the passed config and getApiKey, no internal hook
-    const config = useMemo(() => {
-        console.log('WebSocket hook using config:', configOverride)
-        return configOverride
-    }, [configOverride.url, configOverride.hasApiKey])
-    const getApiKey = getApiKeyOverride
-
-    // Use ref to ensure callbacks always get current config
-    const configRef = useRef(config)
-    configRef.current = config
-
-    // Debug the config state
-    // const hookId = useRef(Math.random().toString(36).substring(7))
+export const useHomeAssistantWebSocket = (config: { url: string | null }, getApiKey: () => string | null) => {
     const [connection, setConnection] = useState<Connection | null>(null)
-    const [isConnected, setIsConnected] = useState(false)
     const [entities, setEntities] = useState<Record<string, HassEntity>>({})
     const [haConfig, setHaConfig] = useState<HassConfig | null>(null)
     const connectionRef = useRef<Connection | null>(null)
-    const [entityCache, setEntityCache] = useState<EntityCache | null>(null)
+    const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+        isConnected: false,
+        isLoading: false,
+        error: null,
+        lastChecked: null,
+    })
 
     const connect = useCallback(async (): Promise<boolean> => {
-        const currentConfig = configRef.current
-        if (!currentConfig.url || !currentConfig.hasApiKey) {
-            console.error('Home Assistant not configured', {
-                url: currentConfig.url,
-                hasApiKey: currentConfig.hasApiKey,
-                prfOutputExists: !!prfOutput,
+        setEntities({})
+
+        const apiKey = getApiKey()
+        if (!config.url || !apiKey) {
+            setConnectionStatus({
+                isConnected: false,
+                isLoading: false,
+                error: 'Configuration incomplete',
+                lastChecked: null,
             })
             return false
         }
 
         try {
-            console.log('About to call getApiKey with config:', {
-                url: currentConfig.url,
-                hasApiKey: currentConfig.hasApiKey,
-            })
-            const apiKey = await getApiKey()
-            console.log('getApiKey result:', apiKey ? 'SUCCESS (key retrieved)' : 'FAILED (no key)')
-            if (!apiKey) {
-                console.error('Failed to get API key - this might be the real issue')
-                return false
-            }
+            console.log('Connecting to Home Assistant WebSocket at', config.url)
 
-            console.log('Connecting to Home Assistant WebSocket:', currentConfig.url)
+            setConnectionStatus((prev) => ({ ...prev, isLoading: true, error: null }))
 
             // Create authentication object
-            const auth = createLongLivedTokenAuth(currentConfig.url, apiKey)
+            const auth = createLongLivedTokenAuth(config.url, apiKey)
 
             const conn = await createConnection({ auth })
 
             connectionRef.current = conn
             setConnection(conn)
-            setIsConnected(true)
+
+            // Handle connection events
+            conn.addEventListener('disconnected', () => {
+                console.warn('Home Assistant connection lost')
+                setConnection(null)
+                connectionRef.current = null
+            })
+
+            conn.addEventListener('reconnect-error', () => {
+                console.error('Home Assistant reconnection failed')
+                disconnect()
+            })
 
             // Get initial states and config
             const states = await getStates(conn)
@@ -128,39 +114,47 @@ export const useHomeAssistantWebSocket = (
                 setEntities(entities)
             })
 
-            // Handle connection events
-            conn.addEventListener('disconnected', () => {
-                console.log('Home Assistant connection lost')
-                setIsConnected(false)
-                setConnection(null)
-                connectionRef.current = null
-            })
-
-            conn.addEventListener('ready', () => {
-                console.log('Home Assistant connection ready')
-            })
-
-            conn.addEventListener('reconnect-error', () => {
-                console.log('Home Assistant reconnection failed')
-                setIsConnected(false)
+            setConnectionStatus({
+                isConnected: true,
+                isLoading: false,
+                error: null,
+                lastChecked: new Date(),
+                haInfo: hassConfig,
             })
 
             return true
-        } catch (error) {
-            console.error('Failed to connect to Home Assistant:', error)
-            setIsConnected(false)
+        } catch (err) {
+            let errorMessage = 'Connection failed'
+
+            if (err instanceof Error) {
+                if (err.name === 'TimeoutError') {
+                    errorMessage = 'Connection timeout - check URL'
+                } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+                    errorMessage = 'Network error - check URL and connectivity'
+                } else {
+                    errorMessage = err.message
+                }
+            }
+
+            console.error('Failed to connect to Home Assistant:', err)
             setConnection(null)
+            setConnectionStatus({
+                isConnected: false,
+                isLoading: false,
+                error: errorMessage,
+                lastChecked: new Date(),
+            })
             connectionRef.current = null
             return false
         }
-    }, [getApiKey])
+    }, [config, getApiKey])
 
     const disconnect = useCallback(() => {
+        console.info('Disconnecting from Home Assistant')
         if (connectionRef.current) {
             connectionRef.current.close()
             connectionRef.current = null
             setConnection(null)
-            setIsConnected(false)
         }
     }, [])
 
@@ -205,7 +199,8 @@ export const useHomeAssistantWebSocket = (
         return {
             ...entity,
             category,
-            room: entity.attributes.area_id, // We could resolve area names if needed
+            // We could resolve area names if needed
+            room: entity.attributes.area_id,
             friendlyDescription,
             canControl,
             supportedActions,
@@ -235,23 +230,7 @@ export const useHomeAssistantWebSocket = (
 
     const getEntities = useCallback(async (): Promise<HAToolResult> => {
         try {
-            const currentConfig = configRef.current
-            console.log(`getEntities called, using current config:`, {
-                config: currentConfig,
-                prfOutput: !!prfOutput,
-            })
-
-            if (!currentConfig.url || !currentConfig.hasApiKey) {
-                return { success: false, error: 'Home Assistant not configured' }
-            }
-
-            if (!isConnected || !connection) {
-                const connected = await connect()
-                if (!connected) {
-                    return { success: false, error: 'Failed to connect to Home Assistant' }
-                }
-            }
-
+            console.log('HERE', entities)
             // Filter and categorize relevant entities
             const relevantEntities = Object.values(entities)
                 .filter((entity: HassEntity) => {
@@ -280,18 +259,11 @@ export const useHomeAssistantWebSocket = (
             console.error('Failed to get entities:', error)
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
         }
-    }, [isConnected, connection, entities, connect])
+    }, [entities])
 
     const getEntityState = useCallback(
         async (entityId: string): Promise<HAToolResult> => {
             try {
-                if (!isConnected || !connection) {
-                    const connected = await connect()
-                    if (!connected) {
-                        return { success: false, error: 'Failed to connect to Home Assistant' }
-                    }
-                }
-
                 const entity = entities[entityId]
                 if (!entity) {
                     return { success: false, error: `Entity ${entityId} not found` }
@@ -304,19 +276,12 @@ export const useHomeAssistantWebSocket = (
                 return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
             }
         },
-        [isConnected, connection, entities, connect, config]
+        [entities]
     )
 
     const callHAService = useCallback(
         async (domain: string, service: string, entityId: string): Promise<HAToolResult> => {
             try {
-                if (!isConnected || !connection) {
-                    const connected = await connect()
-                    if (!connected) {
-                        return { success: false, error: 'Failed to connect to Home Assistant' }
-                    }
-                }
-
                 console.log('Calling service:', { domain, service, entityId })
 
                 if (!connection) {
@@ -333,7 +298,7 @@ export const useHomeAssistantWebSocket = (
                 return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
             }
         },
-        [isConnected, connection, connect, config]
+        [connection]
     )
 
     const findEntitiesByContext = useCallback(
@@ -388,19 +353,15 @@ export const useHomeAssistantWebSocket = (
                 return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
             }
         },
-        [getEntities, config]
+        [getEntities]
     )
 
     const testConnection = useCallback(async (): Promise<HAToolResult> => {
         try {
             const connected = await connect()
-            if (connected && haConfig) {
+            if (connected) {
                 return {
                     success: true,
-                    data: {
-                        version: haConfig.version,
-                        name: haConfig.location_name || 'Home Assistant',
-                    },
                 }
             }
             return { success: false, error: 'Failed to connect' }
@@ -408,46 +369,33 @@ export const useHomeAssistantWebSocket = (
             console.error('Connection test failed:', error)
             return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
         }
-    }, [connect, haConfig, config])
-
-    // Create connection status for the UI component
-    const connectionStatus = {
-        isConnected,
-        isLoading: false, // WebSocket connections are real-time
-        error: null, // Could track connection errors here
-        lastChecked: new Date(),
-        haInfo: haConfig
-            ? {
-                  version: haConfig.version,
-                  name: haConfig.location_name || 'Home Assistant',
-              }
-            : undefined,
-    }
+    }, [connect, config])
 
     // Auto-connect when config changes
     useEffect(() => {
-        const currentConfig = configRef.current
-        if (currentConfig.url && currentConfig.hasApiKey && !isConnected) {
+        if (config.url && !connection) {
             console.log('Attempting auto-connect...')
             connect()
         }
-    }, [config, isConnected, connect])
+    }, [config.url])
 
-    // Cleanup on unmount
+    // Disconnect on unmount
     useEffect(() => {
         return () => {
             disconnect()
         }
-    }, [disconnect])
+    }, [])
 
     return {
         // WebSocket specific
-        connection,
-        isConnected,
+        isConnected: !!connection,
         connect,
         disconnect,
         entities,
         haConfig,
+
+        // Info
+        connectionStatus,
 
         // Tool functions (same interface as REST version)
         getEntities,
@@ -455,9 +403,5 @@ export const useHomeAssistantWebSocket = (
         callService: callHAService,
         findEntitiesByContext,
         testConnection,
-
-        // Status
-        isConfigured: config.url && config.hasApiKey,
-        connectionStatus,
     }
 }

@@ -1,21 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import CryptoUtils, { SecretNotFoundError } from '@/lib/crypto-utils'
 
 interface HomeAssistantConfig {
     url: string | null
-}
-
-interface ConnectionStatus {
-    isConnected: boolean
-    isLoading: boolean
-    error: string | null
-    lastChecked: Date | null
-    haInfo?: {
-        version?: string
-        name?: string
-    }
 }
 
 export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {

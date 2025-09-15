@@ -66,11 +66,12 @@ export default class CryptoUtils {
     }
 
     async Get(secretName: string): Promise<string> {
+        const storedJSON = localStorage.getItem(`${secretName}-enc`)
+        if (!storedJSON) {
+            throw new SecretNotFoundError()
+        }
+
         try {
-            const storedJSON = localStorage.getItem(`${secretName}-enc`)
-            if (!storedJSON) {
-                throw new SecretNotFoundError()
-            }
             const secret = JSON.parse(storedJSON) as StoredSecret
 
             // Convert base64 strings back to Uint8Arrays
