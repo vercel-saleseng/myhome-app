@@ -2,7 +2,7 @@
 
 import type React from 'react'
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback, type Dispatch, type SetStateAction } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, UIMessage } from 'ai'
 import { Button } from '@/components/ui/button'
@@ -19,13 +19,19 @@ import { VoiceButton } from '@/components/voice-button'
 import { HomeAssistantStatus } from '@/components/home-assistant-status'
 import { HomeAssistantConfig } from '@/components/home-assistant-config'
 
-export function ModernChatInterface({ haConfigHook }: { haConfigHook: ReturnType<typeof useHomeAssistantConfig> }) {
+export function ModernChatInterface({
+    haConfigHook,
+    setUser,
+}: {
+    haConfigHook: ReturnType<typeof useHomeAssistantConfig>
+    setUser: Dispatch<SetStateAction<{ name?: string | null }>>
+}) {
     const [input, setInput] = useState('')
     const [pendingConfirmation, setPendingConfirmation] = useState<any>(null)
     const [showConfig, setShowConfig] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
     const { config, getApiKey } = haConfigHook
-    const haTools = useHomeAssistantWebSocket(config, getApiKey)
+    const haTools = useHomeAssistantWebSocket(config, getApiKey, setUser)
 
     const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
         useSpeechRecognition()

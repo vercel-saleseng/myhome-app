@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Bot, User } from 'lucide-react'
 
 interface AppHeaderProps {
-    user: { name: string }
+    user: { name?: string | null }
     onSignOut: () => void
     children?: React.ReactNode
 }
@@ -21,7 +21,7 @@ export function AppHeader({ user, onSignOut, children }: AppHeaderProps) {
                     </div>
                     <div className="hidden sm:block">
                         <h1 className="font-semibold text-foreground">MyHome Assistant</h1>
-                        <p className="text-sm text-muted-foreground">Welcome, {user.name}</p>
+                        {user?.name && <p className="text-sm text-muted-foreground">Welcome, {user.name}</p>}
                     </div>
                     <div className="sm:hidden">
                         <h1 className="font-semibold text-foreground text-sm">MyHome Assistant</h1>

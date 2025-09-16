@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, type Dispatch, type SetStateAction } from 'react'
 import {
     createConnection,
     subscribeEntities,
@@ -8,6 +8,7 @@ import {
     getStates,
     getConfig,
     createLongLivedTokenAuth,
+    getUser,
     type Connection,
     type HassEntity,
     type HassConfig,
@@ -46,7 +47,11 @@ export interface HAToolResult {
     error?: string
 }
 
-export const useHomeAssistantWebSocket = (config: { url: string | null }, getApiKey: () => string | null) => {
+export const useHomeAssistantWebSocket = (
+    config: { url: string | null },
+    getApiKey: () => string | null,
+    setUser: Dispatch<SetStateAction<{ name?: string | null }>>
+) => {
     const [connection, setConnection] = useState<Connection | null>(null)
     const [entities, setEntities] = useState<Record<string, HassEntity>>({})
     const [haConfig, setHaConfig] = useState<HassConfig | null>(null)
@@ -100,6 +105,10 @@ export const useHomeAssistantWebSocket = (config: { url: string | null }, getApi
             // Get initial states and config
             const states = await getStates(conn)
             const hassConfig = await getConfig(conn)
+            const hassUser = await getUser(conn)
+            if (hassUser?.name) {
+                setUser({ name: hassUser.name })
+            }
 
             const entitiesMap: Record<string, HassEntity> = {}
             states.forEach((entity) => {

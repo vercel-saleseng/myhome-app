@@ -8,7 +8,7 @@ interface ConnectionStatus {
     lastChecked: Date | null
     haInfo?: {
         version?: string
-        name?: string
+        location_name?: string
     }
 }
 

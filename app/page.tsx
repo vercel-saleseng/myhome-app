@@ -152,16 +152,9 @@ const LoginPage = ({
     )
 }
 
-const MainInterface = ({
-    user,
-    onSignOut,
-    prfOutput,
-}: {
-    user: { name: string }
-    onSignOut: () => void
-    prfOutput: BufferSource | null
-}) => {
+const MainInterface = ({ onSignOut, prfOutput }: { onSignOut: () => void; prfOutput: BufferSource | null }) => {
     const [showConfig, setShowConfig] = useState(false)
+    const [user, setUser] = useState<{ name?: string | null }>({})
     const haConfigHook = useHomeAssistantConfig(prfOutput)
 
     return (
@@ -188,7 +181,7 @@ const MainInterface = ({
             </AppHeader>
 
             <main className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] p-4">
-                <ModernChatInterface haConfigHook={haConfigHook} />
+                <ModernChatInterface haConfigHook={haConfigHook} setUser={setUser} />
             </main>
         </div>
     )
@@ -199,7 +192,6 @@ export default function HomePage() {
 
     const {
         isSupported,
-        user,
         isLoading,
         error,
         setError,
@@ -208,7 +200,6 @@ export default function HomePage() {
         registerPasskey,
         authenticatePasskey,
         signOut,
-        clearPasskey,
         getPRFOutput,
     } = usePasskey()
 
@@ -254,5 +245,5 @@ export default function HomePage() {
         )
     }
 
-    return <MainInterface user={user || { name: 'User' }} onSignOut={handleSignOut} prfOutput={getPRFOutput()} />
+    return <MainInterface onSignOut={handleSignOut} prfOutput={getPRFOutput()} />
 }

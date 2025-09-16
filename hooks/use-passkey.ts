@@ -17,7 +17,6 @@ interface AuthenticationSession {
 
 export const usePasskey = () => {
     const [isSupported, setIsSupported] = useState(false)
-    const [user, setUser] = useState<PasskeyUser | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -202,7 +201,6 @@ export const usePasskey = () => {
 
     const clearPasskey = () => {
         sessionStorage.removeItem('encrypted-secret')
-        setUser(null)
         setAuthSession(null)
         setIsAuthenticated(false)
         setError(null)
@@ -214,7 +212,6 @@ export const usePasskey = () => {
 
     return {
         isSupported,
-        user,
         isLoading,
         error,
         setError,

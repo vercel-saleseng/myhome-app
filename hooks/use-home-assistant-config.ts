@@ -179,7 +179,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                 lastChecked: new Date(),
                 haInfo: {
                     version: data.version,
-                    name: data.location_name || 'Home Assistant',
+                    location_name: data.location_name || 'Home Assistant',
                 },
             }
 

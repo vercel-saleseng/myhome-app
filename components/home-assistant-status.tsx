@@ -65,7 +65,7 @@ export function HomeAssistantStatus({
                         <Wifi className="w-4 h-4 text-green-600 dark:text-green-400" />
                         <div className="flex flex-col">
                             <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                                Connected to {haInfo.name}
+                                Connected to {haInfo.location_name}
                             </span>
                             {haInfo.version && (
                                 <span className="text-xs text-green-600 dark:text-green-400">
