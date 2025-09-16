@@ -31,7 +31,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
 
         // IIFE
         ;(async () => {
-            // If we don't have the output from the PRF, it means we don't have a (valid) passkey authentication
+            // If we don't have the output from the PRF, it means we don't have a (valid) Passkey authentication
             if (!prfOutput) {
                 setError('PRF data is not available. Please authenticate with your Passkey first.')
                 setCryptoUtils(null)

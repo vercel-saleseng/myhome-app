@@ -97,12 +97,12 @@ export const usePasskey = () => {
             })) as PublicKeyCredential
 
             if (!credential) {
-                throw new Error('Failed to create passkey')
+                throw new Error('Failed to create Passkey')
             }
 
             console.log('Passkey registered successfully:', credential.id)
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to register passkey'
+            const errorMessage = err instanceof Error ? err.message : 'Failed to register Passkey'
             setError(errorMessage)
             console.error('Passkey registration failed:', err)
             throw new Error(errorMessage)
@@ -179,9 +179,9 @@ export const usePasskey = () => {
             if (errorMessage.includes('NotAllowedError') || errorMessage.includes('User cancelled')) {
                 setError('Authentication was cancelled. Please try again.')
             } else if (errorMessage.includes('InvalidStateError')) {
-                setError('Passkey not found on this device. Please register a new passkey.')
+                setError('Passkey not found on this device. Please register a new Passkey.')
             } else if (errorMessage.includes('NotSupportedError')) {
-                setError('This passkey is not supported on this device.')
+                setError('This Passkey is not supported on this device.')
             } else {
                 setError(errorMessage)
             }

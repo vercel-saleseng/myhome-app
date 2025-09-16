@@ -53,7 +53,7 @@ const LoginPage = ({
                                     to work properly.
                                 </>
                             ) : (
-                                <>WebAuthn passkeys with the PRF extension are not supported in this browser.</>
+                                <>WebAuthn Passkeys with the PRF extension are not supported in this browser.</>
                             )}
                         </AlertDescription>
                     </Alert>
@@ -67,7 +67,7 @@ const LoginPage = ({
                             <div className="text-center space-y-2">
                                 <p className="text-sm font-medium text-foreground">Why is this needed?</p>
                                 <p className="text-xs text-muted-foreground text-pretty">
-                                    For security reasons, passkey authentication cannot work when this app is embedded
+                                    For security reasons, Passkey authentication cannot work when this app is embedded
                                     in another page. Opening in a new tab allows full access to your device's security
                                     features.
                                 </p>
@@ -102,7 +102,7 @@ const LoginPage = ({
                             }}
                             className="text-sm"
                         >
-                            Already have a passkey? Sign in instead
+                            Already have a Passkey? Sign in instead
                         </Button>
                     </div>
                 </div>
@@ -113,7 +113,7 @@ const LoginPage = ({
                             <Bot className="w-8 h-8 text-primary-foreground" />
                         </div>
                         <h1 className="text-2xl font-bold text-foreground text-balance">MyHome Assistant</h1>
-                        <p className="text-muted-foreground text-pretty">Sign in with your passkey</p>
+                        <p className="text-muted-foreground text-pretty">Sign in with your Passkey</p>
                     </div>
 
                     {error && (

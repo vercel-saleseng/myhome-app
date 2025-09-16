@@ -140,7 +140,7 @@ export function HomeAssistantConfig({
                             className="font-mono text-sm"
                         />
                         <p className="text-xs text-muted-foreground">
-                            Long-lived access token from Home Assistant (encrypted with your passkey)
+                            Long-lived access token from Home Assistant (encrypted with your Passkey)
                         </p>
                     </div>
 
