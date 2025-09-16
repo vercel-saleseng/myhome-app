@@ -33,7 +33,7 @@ export interface HAEntity {
 }
 
 export interface CategorizedEntity extends HAEntity {
-    category: 'door' | 'garage_door' | 'lock' | 'cover' | 'sensor' | 'other'
+    category: 'door' | 'garage_door' | 'lock' | 'cover' | 'light' | 'sensor' | 'other'
     room?: string
     friendlyDescription: string
     canControl: boolean
@@ -183,6 +183,21 @@ export const useHomeAssistantWebSocket = (config: { url: string | null }, getApi
             category = 'lock'
             canControl = true
             supportedActions = ['lock', 'unlock']
+        } else if (domain === 'light') {
+            category = 'light'
+            canControl = true
+            const supportedFeatures = entity.attributes.supported_features || 0
+            supportedActions = ['turn_on', 'turn_off', 'toggle', 'check_status']
+
+            // Check for brightness support (bit 1)
+            if (supportedFeatures & 1) {
+                supportedActions.push('dim', 'brighten')
+            }
+
+            // Check for color support (bit 4)
+            if (supportedFeatures & 16) {
+                supportedActions.push('set_color')
+            }
         } else if (domain === 'binary_sensor' && (deviceClass === 'door' || deviceClass === 'garage_door')) {
             category = deviceClass === 'garage_door' ? 'garage_door' : 'door'
             canControl = false
@@ -223,6 +238,21 @@ export const useHomeAssistantWebSocket = (config: { url: string | null }, getApi
                 return `${friendlyName} is ${state === 'locked' ? 'locked' : 'unlocked'}`
             case 'cover':
                 return `${friendlyName} is ${state}`
+            case 'light':
+                const isOn = state === 'on'
+                let description = `${friendlyName} is ${isOn ? 'on' : 'off'}`
+
+                if (isOn && entity.attributes.brightness) {
+                    const brightness = Math.round((entity.attributes.brightness / 255) * 100)
+                    description += ` (${brightness}% brightness)`
+                }
+
+                if (isOn && entity.attributes.rgb_color) {
+                    const [r, g, b] = entity.attributes.rgb_color
+                    description += ` (color: rgb(${r}, ${g}, ${b}))`
+                }
+
+                return description
             default:
                 return `${friendlyName} is ${state}`
         }
@@ -241,11 +271,13 @@ export const useHomeAssistantWebSocket = (config: { url: string | null }, getApi
                     return (
                         entityId.startsWith('cover.') ||
                         entityId.startsWith('lock.') ||
+                        entityId.startsWith('light.') ||
                         entityId.startsWith('binary_sensor.') ||
                         entityId.startsWith('switch.') ||
                         entityId.includes('door') ||
                         friendlyName.includes('door') ||
                         friendlyName.includes('garage') ||
+                        friendlyName.includes('light') ||
                         deviceClass === 'door' ||
                         deviceClass === 'garage_door'
                     )
@@ -333,6 +365,7 @@ export const useHomeAssistantWebSocket = (config: { url: string | null }, getApi
                         back: ['rear', 'backyard', 'patio'],
                         door: ['entrance', 'entry', 'gate'],
                         lock: ['security', 'secure'],
+                        light: ['lamp', 'lighting', 'bulb', 'illuminate'],
                     }
 
                     for (const [key, values] of Object.entries(synonyms)) {
