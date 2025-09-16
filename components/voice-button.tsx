@@ -41,24 +41,24 @@ export function VoiceButton({ isListening, isProcessing, onToggle, className }: 
             )}
 
             {/* Main button */}
-            <Button
+            <button
                 onClick={onToggle}
-                size="lg"
                 disabled={isProcessing}
                 className={cn(
-                    'w-24 h-24 md:w-32 md:h-32 rounded-full text-xl md:text-2xl transition-all duration-300 shadow-lg',
+                    'w-36 h-36',
+                    'rounded-full text-2xl',
+                    'transition-all duration-300 shadow-lg',
+                    'inline-flex items-center justify-center',
+                    'font-medium disabled:pointer-events-none',
+                    'focus:outline-none focus:ring-2 focus:ring-offset-2',
                     isListening
-                        ? 'bg-destructive hover:bg-destructive/90 listening-glow scale-110'
-                        : 'bg-primary hover:bg-primary/90 hover:scale-105',
+                        ? 'bg-destructive hover:bg-destructive/90 text-white listening-glow scale-110 focus:ring-destructive'
+                        : 'bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 focus:ring-primary',
                     isProcessing && 'opacity-50 cursor-not-allowed'
                 )}
             >
-                {isListening ? (
-                    <MicOff className="w-8 h-8 md:w-12 md:h-12" />
-                ) : (
-                    <Mic className="w-8 h-8 md:w-12 md:h-12" />
-                )}
-            </Button>
+                {isListening ? <MicOff className="w-16 h-16" /> : <Mic className="w-16 h-16" />}
+            </button>
 
             {/* Processing indicator */}
             {isProcessing && (
