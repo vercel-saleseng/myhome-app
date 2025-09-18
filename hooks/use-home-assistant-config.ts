@@ -7,7 +7,11 @@ interface HomeAssistantConfig {
     url: string | null
 }
 
-export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
+export const useHomeAssistantConfig = (
+    prfOutput: BufferSource | null,
+    userId?: string | null,
+    useCloudStorage?: boolean
+) => {
     const [config, setConfig] = useState<HomeAssistantConfig>({ url: null })
     const [cryptoUtils, setCryptoUtils] = useState<CryptoUtils | null>()
     const [apiKey, setApiKey] = useState<string | null>()
@@ -40,8 +44,11 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
                 return
             }
 
-            // Init the CryptoUtils
-            const cu = new CryptoUtils(prfOutput, cryptoBaseMessage)
+            // Init the CryptoUtils with cloud storage support if configured
+            const cu = new CryptoUtils(prfOutput, cryptoBaseMessage, {
+                userId: userId || undefined,
+                useCloudStorage,
+            })
             setCryptoUtils(cu)
 
             // Try to get the URL
@@ -84,7 +91,7 @@ export const useHomeAssistantConfig = (prfOutput: BufferSource | null) => {
         })()
             // Set isBusy to false, no matter what the result of the promise
             .then(() => setIsBusy(false))
-    }, [prfOutput])
+    }, [prfOutput, userId])
 
     const saveConfig = async (urlVal: string, apiKeyVal: string): Promise<void> => {
         if (!cryptoUtils) {

@@ -152,10 +152,24 @@ const LoginPage = ({
     )
 }
 
-const MainInterface = ({ onSignOut, prfOutput }: { onSignOut: () => void; prfOutput: BufferSource | null }) => {
+const MainInterface = ({
+    onSignOut,
+    prfOutput,
+    userId,
+}: {
+    onSignOut: () => void
+    prfOutput: BufferSource | null
+    userId: string | null
+}) => {
     const [showConfig, setShowConfig] = useState(false)
     const [user, setUser] = useState<{ name?: string | null }>({})
-    const haConfigHook = useHomeAssistantConfig(prfOutput)
+
+    const useCloudStorage = ['1', 'true', 'yes', 'y'].includes(
+        (process.env.NEXT_PUBLIC_CLOUD_STORAGE || '').toLowerCase()
+    )
+    console.log({ useCloudStorage }, process.env)
+
+    const haConfigHook = useHomeAssistantConfig(prfOutput, userId, useCloudStorage)
 
     return (
         <div className="min-h-screen bg-background">
@@ -201,6 +215,7 @@ export default function HomePage() {
         authenticatePasskey,
         signOut,
         getPRFOutput,
+        getUserId,
     } = usePasskey()
 
     useEffect(() => {
@@ -245,5 +260,5 @@ export default function HomePage() {
         )
     }
 
-    return <MainInterface onSignOut={handleSignOut} prfOutput={getPRFOutput()} />
+    return <MainInterface onSignOut={handleSignOut} prfOutput={getPRFOutput()} userId={getUserId()} />
 }

@@ -3,12 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Encode as B64Encode } from 'arraybuffer-encoding/base64/url'
 
-interface PasskeyUser {
-    id: string
-    name: string
-    displayName: string
-}
-
 interface AuthenticationSession {
     userId: string
     timestamp: number
@@ -210,6 +204,10 @@ export const usePasskey = () => {
         return authSession?.prfOutput || null
     }
 
+    const getUserId = (): string | null => {
+        return authSession?.userId || null
+    }
+
     return {
         isSupported,
         isLoading,
@@ -223,6 +221,7 @@ export const usePasskey = () => {
         signOut,
         clearPasskey,
         getPRFOutput,
+        getUserId,
     }
 }
 
