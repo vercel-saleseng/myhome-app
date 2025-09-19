@@ -12,6 +12,30 @@ interface ConnectionStatus {
     }
 }
 
+/**
+ * Data sent in the Authorization header to storage API requests
+ */
+interface StorageAuthHeader {
+    userId: string
+    keyId: string
+    authSignature: string
+    /** Timestamp in ms */
+    timestamp: number
+    /** String containing a JWK-encoded public key */
+    pubKey: string
+}
+
+/**
+ * Content of the signed message in the auth header for storage API requests
+ */
+interface StorageAuthSignedMessage {
+    method: string
+    secretName: string
+    timestamp: number
+    userId: string
+    keyId: string
+}
+
 // Speech Recognition Web API types
 interface Window {
     SpeechRecognition: new () => SpeechRecognition

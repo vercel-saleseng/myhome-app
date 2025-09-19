@@ -136,7 +136,7 @@ export default class CryptoUtils {
                 Authorization: authHeader,
             },
             body: JSON.stringify({
-                secretData: storedSecret,
+                data: storedSecret,
             }),
         })
 
@@ -293,8 +293,10 @@ export default class CryptoUtils {
     private async getPublicJWK(privKey: CryptoKey) {
         const jwk = await crypto.subtle.exportKey('jwk', privKey)
 
-        // Delete the private part
+        // Delete the private part and usages, set key_ops to verify
         jwk.d = undefined
+        jwk.use = undefined
+        jwk.key_ops = ['verify']
 
         // Return as JSON
         return JSON.stringify(jwk)
@@ -317,8 +319,7 @@ export default class CryptoUtils {
             timestamp,
             userId: this.userId,
             keyId: authKey.kid,
-            pubKey: authKey.pubJWK,
-        })
+        } as StorageAuthSignedMessage)
 
         // Sign with the derived auth key using ECDSA
         const signatureBuffer = await crypto.subtle.sign(
@@ -328,14 +329,13 @@ export default class CryptoUtils {
         )
         const authSignature = B64Encode(signatureBuffer)
 
-        const authHeader = {
+        const authHeader: StorageAuthHeader = {
             userId: this.userId,
             keyId: authKey.kid,
             authSignature,
             timestamp,
+            pubKey: authKey.pubJWK,
         }
-
-        console.log(authHeader)
 
         // Encode as base64 JSON
         const tokenData = JSON.stringify(authHeader)
