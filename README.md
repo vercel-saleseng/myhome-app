@@ -18,6 +18,8 @@ This repository contains a demo application showcasing Vercel's AI Cloud, deploy
 - Next.js & [AI SDK](https://ai-sdk.dev/)
 - Hosted on Vercel, using [Vercel Functions](https://vercel.com/docs/functions), [AI Gateway](https://vercel.com/docs/ai-gateway), optional [Vercel Blob](https://vercel.com/docs/vercel-blob)
 
+![Screenshot of the application, showing the authentication window (using Passkey) and the chatbot checking the status of lights inside the home](./screenshot.webp)
+
 ## Usage requirements
 
 In order to be able to use this app, as an **end user** you need a Passkey with support for the PRF extension.
