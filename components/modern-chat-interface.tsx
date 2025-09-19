@@ -136,8 +136,8 @@ export function ModernChatInterface({
     // Handle voice transcript
     useEffect(() => {
         if (!isListening && transcript.trim()) {
-            setInput(transcript)
             sendMessage({ text: transcript })
+            setInput('')
             resetTranscript()
         }
     }, [isListening, transcript, resetTranscript, sendMessage])
