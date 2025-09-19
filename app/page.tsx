@@ -11,7 +11,7 @@ import { PasskeyRegistration } from '@/components/passkey-registration'
 import { HomeAssistantConfig } from '@/components/home-assistant-config'
 import { LoadingScreen } from '@/components/loading-screen'
 import { ModernChatInterface } from '@/components/modern-chat-interface'
-import { usePasskey } from '@/hooks/use-passkey'
+import { AuthenticationSession, usePasskey } from '@/hooks/use-passkey'
 import { useHomeAssistantConfig } from '@/hooks/use-home-assistant-config'
 
 const LoginPage = ({
@@ -154,22 +154,13 @@ const LoginPage = ({
 
 const MainInterface = ({
     onSignOut,
-    prfOutput,
-    userId,
+    haConfigHook,
 }: {
     onSignOut: () => void
-    prfOutput: BufferSource | null
-    userId: string | null
+    haConfigHook: ReturnType<typeof useHomeAssistantConfig>
 }) => {
     const [showConfig, setShowConfig] = useState(false)
-    const [user, setUser] = useState<{ name?: string | null }>({})
-
-    const useCloudStorage = ['1', 'true', 'yes', 'y'].includes(
-        (process.env.NEXT_PUBLIC_CLOUD_STORAGE || '').toLowerCase()
-    )
-    console.log({ useCloudStorage }, process.env)
-
-    const haConfigHook = useHomeAssistantConfig(prfOutput, userId, useCloudStorage)
+    const [user, setUser] = useState<{ name?: string }>({})
 
     return (
         <div className="min-h-screen bg-background">
@@ -205,6 +196,7 @@ export default function HomePage() {
     const [isInitializing, setIsInitializing] = useState(true)
 
     const {
+        authSession,
         isSupported,
         isLoading,
         error,
@@ -214,9 +206,13 @@ export default function HomePage() {
         registerPasskey,
         authenticatePasskey,
         signOut,
-        getPRFOutput,
-        getUserId,
     } = usePasskey()
+
+    const useCloudStorage = ['1', 'true', 'yes', 'y'].includes(
+        (process.env.NEXT_PUBLIC_CLOUD_STORAGE || '').toLowerCase()
+    )
+
+    const haConfigHook = useHomeAssistantConfig(authSession?.prfOutput, authSession?.userId, useCloudStorage)
 
     useEffect(() => {
         setIsInitializing(false)
@@ -260,5 +256,5 @@ export default function HomePage() {
         )
     }
 
-    return <MainInterface onSignOut={handleSignOut} prfOutput={getPRFOutput()} userId={getUserId()} />
+    return <MainInterface onSignOut={handleSignOut} haConfigHook={haConfigHook} />
 }

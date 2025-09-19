@@ -49,8 +49,8 @@ export interface HAToolResult {
 
 export const useHomeAssistantWebSocket = (
     config: { url: string | null },
-    getApiKey: () => string | null,
-    setUser: Dispatch<SetStateAction<{ name?: string | null }>>
+    apiKey: string | null | undefined,
+    setUser: Dispatch<SetStateAction<{ name?: string }>>
 ) => {
     const [connection, setConnection] = useState<Connection | null>(null)
     const [entities, setEntities] = useState<Record<string, HassEntity>>({})
@@ -66,7 +66,6 @@ export const useHomeAssistantWebSocket = (
     const connect = useCallback(async (): Promise<boolean> => {
         setEntities({})
 
-        const apiKey = getApiKey()
         if (!config.url || !apiKey) {
             setConnectionStatus({
                 isConnected: false,
@@ -156,7 +155,7 @@ export const useHomeAssistantWebSocket = (
             connectionRef.current = null
             return false
         }
-    }, [config, getApiKey])
+    }, [config, apiKey])
 
     const disconnect = useCallback(() => {
         console.info('Disconnecting from Home Assistant')

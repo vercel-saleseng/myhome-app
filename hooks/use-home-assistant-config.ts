@@ -8,7 +8,7 @@ interface HomeAssistantConfig {
 }
 
 export const useHomeAssistantConfig = (
-    prfOutput: BufferSource | null,
+    prfOutput?: BufferSource | null,
     userId?: string | null,
     useCloudStorage?: boolean
 ) => {
@@ -91,7 +91,7 @@ export const useHomeAssistantConfig = (
         })()
             // Set isBusy to false, no matter what the result of the promise
             .then(() => setIsBusy(false))
-    }, [prfOutput, userId])
+    }, [prfOutput])
 
     const saveConfig = async (urlVal: string, apiKeyVal: string): Promise<void> => {
         if (!cryptoUtils) {
@@ -127,10 +127,6 @@ export const useHomeAssistantConfig = (
         } finally {
             setIsBusy(false)
         }
-    }
-
-    const getApiKey = (): string | null => {
-        return apiKey || null
     }
 
     const clearConfig = (): void => {
@@ -230,7 +226,7 @@ export const useHomeAssistantConfig = (
         error,
         connectionStatus,
         saveConfig,
-        getApiKey,
+        apiKey,
         clearConfig,
         testConnection,
         isBusy,

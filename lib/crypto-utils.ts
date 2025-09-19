@@ -1,4 +1,5 @@
 import { Encode as B64Encode, Decode as B64Decode } from 'arraybuffer-encoding/base64/url'
+import { p256 } from '@noble/curves/nist'
 
 interface StoredSecret {
     id: string
@@ -266,11 +267,22 @@ export default class CryptoUtils {
         if (pkBuf.byteLength != 32) {
             throw new Error('P-256 private key must be exactly 32 bytes.')
         }
-        // In order to import a raw private key, we need to put it into a JWK first
+
+        // Derive public key coordinates from private key using P-256 curve
+        const privateKeyBytes = new Uint8Array(pkBuf)
+        const publicKeyPoint = p256.getPublicKey(privateKeyBytes, false) // Uncompressed format
+
+        // Extract x and y coordinates (skip first byte which is 0x04 for uncompressed)
+        const x = publicKeyPoint.slice(1, 33)
+        const y = publicKeyPoint.slice(33, 65)
+
+        // Create JWK with both private and public components
         const jwk: JsonWebKey = {
             kty: 'EC',
             crv: 'P-256',
             d: B64Encode(pkBuf),
+            x: B64Encode(x.buffer),
+            y: B64Encode(y.buffer),
         }
 
         // Import the private key

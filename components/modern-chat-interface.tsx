@@ -24,14 +24,13 @@ export function ModernChatInterface({
     setUser,
 }: {
     haConfigHook: ReturnType<typeof useHomeAssistantConfig>
-    setUser: Dispatch<SetStateAction<{ name?: string | null }>>
+    setUser: Dispatch<SetStateAction<{ name?: string }>>
 }) {
     const [input, setInput] = useState('')
     const [pendingConfirmation, setPendingConfirmation] = useState<any>(null)
     const [showConfig, setShowConfig] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
-    const { config, getApiKey } = haConfigHook
-    const haTools = useHomeAssistantWebSocket(config, getApiKey, setUser)
+    const haTools = useHomeAssistantWebSocket(haConfigHook.config, haConfigHook.apiKey, setUser)
 
     const { transcript, isListening, isSupported, error, startListening, stopListening, resetTranscript } =
         useSpeechRecognition()
@@ -361,7 +360,7 @@ export function ModernChatInterface({
             <div className="mt-4">
                 <HomeAssistantStatus
                     connectionStatus={haTools.connectionStatus}
-                    config={config}
+                    config={haConfigHook.config}
                     onOpenConfig={() => setShowConfig(true)}
                     onTestConnection={haTools.testConnection}
                     className="w-full max-w-64 mx-auto"
