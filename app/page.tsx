@@ -25,7 +25,7 @@ const LoginPage = ({
 }: {
     onRegisterPasskey: (username: string, displayName: string) => Promise<void>
     onAuthenticatePasskey: () => Promise<void>
-    isSupported: boolean
+    isSupported: boolean | 'maybe-prf'
     isLoading: boolean
     error: string | null
     setError: Dispatch<SetStateAction<string | null>>
@@ -47,7 +47,12 @@ const LoginPage = ({
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                            {isBlocked ? (
+                            {!window.isSecureContext ? (
+                                <>
+                                    WebAuthn is not available when the application isn't running in a secure context.
+                                    Please make sure to run the app on a website served over HTTPS.
+                                </>
+                            ) : isBlocked ? (
                                 <>
                                     WebAuthn is blocked by security policy. This app needs to run in a new tab or window
                                     to work properly.
@@ -133,6 +138,18 @@ const LoginPage = ({
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
+                    )}
+
+                    {!error && isSupported === 'maybe-prf' && (
+                        <div className="text-sm">
+                            <Alert variant="default">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Could not determine whether PRF is supported for WebAuthn credentials in your
+                                    environment. The app may not work reliably if the PRF extension isn't available.
+                                </AlertDescription>
+                            </Alert>
+                        </div>
                     )}
 
                     <div className="space-y-3">

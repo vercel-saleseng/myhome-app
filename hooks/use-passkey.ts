@@ -10,7 +10,7 @@ export interface AuthenticationSession {
 }
 
 export const usePasskey = () => {
-    const [isSupported, setIsSupported] = useState(false)
+    const [isSupported, setIsSupported] = useState<boolean | 'maybe-prf'>(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -24,13 +24,19 @@ export const usePasskey = () => {
                 typeof window !== 'undefined' &&
                 'navigator' in window &&
                 'credentials' in navigator &&
-                typeof navigator.credentials.create === 'function' &&
-                // Check for PRF support
-                (await checkPRFSupport())
+                typeof navigator.credentials.create === 'function'
 
-            setIsSupported(check)
             if (!check) {
+                setIsSupported(false)
                 return
+            }
+
+            // Check for PRF support
+            // This check isn't fully reliable, especially on Safari, where we can get false negatives
+            if (await checkPRFSupport()) {
+                setIsSupported(true)
+            } else {
+                setIsSupported('maybe-prf')
             }
         }
 
@@ -222,6 +228,7 @@ function checkPRFSupport(): boolean | Promise<boolean> {
         return false
     }
 
+    // On Safari (up to 26.0), the list of capabilities does not include extensions
     return PublicKeyCredential.getClientCapabilities().then((caps) => !!caps['extension:prf'])
 }
 
