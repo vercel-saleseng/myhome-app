@@ -1,64 +1,62 @@
-# MyHome Assistant app
-
-_Automatically synced with your [v0.app](https://v0.app) deployments_
+# MyHome Assistant - Vercel AI Cloud agent demo
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/alesegala-vtest314/v0-voice-assistant-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/0YkPvVuj8QL)
 
-## Overview
+This repository contains a demo application showcasing Vercel's AI Cloud, deploying an AI agent. It works with a [Home Assistant](https://www.home-assistant.io/) server to check the status of and control with lights and doors, among other things. It is built with a focus on security and privacy.
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fhello-world&env=AI_GATEWAY_API_KEY,NEXT_PUBLIC_CLOUD_STORAGE,BLOB_BASE_URL,BLOB_READ_WRITE_TOKEN&envDescription=See%20project's%20README&envLink=https%3A%2F%2Fgithub.com%2Fvercel-saleseng%2Fmyhome-app&project-name=myhome-app&repository-name=myhome-app)
 
-## Deployment
+### Features
 
-Your project is live at:
+- Interact with Home Assistant using natural language and your voice (using the Web Speech APIs)
+- Authenticate with a Passkey
+- Your credentials are encrypted with your Passkey (using PRF) and stored in either your browser's Local Storage, or in Vercel Blob
+- Direct connection from your browser to Home Assistant, so it works even if your Home Assistant server isn't open on the public Internet
 
-**[https://vercel.com/alesegala-vtest314/v0-voice-assistant-app](https://vercel.com/alesegala-vtest314/v0-voice-assistant-app)**
+### Stack
 
-## Cloud Storage (Optional)
+- Next.js & [AI SDK](https://ai-sdk.dev/)
+- Hosted on Vercel, using [Vercel Functions](https://vercel.com/docs/functions), [AI Gateway](https://vercel.com/docs/ai-gateway), optional [Vercel Blob](https://vercel.com/docs/vercel-blob)
 
-This app supports optional cloud storage for encrypted secrets using Vercel Blob. When configured, your Home Assistant configuration will sync across devices while remaining securely encrypted with your Passkey.
+## Usage requirements
 
-### Setup
+In order to be able to use this app, as an **end user** you need a Passkey with support for the PRF extension.
 
-1. Create a Vercel Blob store in your Vercel dashboard
-2. Copy the `BLOB_READ_WRITE_TOKEN` from your Vercel dashboard
-3. Add it to your environment variables:
+Not all Passkeys, security keys, browsers, and operating systems support PRF; you can find [some compatibility tables here](https://www.corbado.com/blog/passkeys-prf-webauthn). A non-exhaustive list of supported scenarios include:
 
-```bash
-BLOB_READ_WRITE_TOKEN=your_token_here
-```
+- macOS/iOS: Safari with Apple/iCloud Passkeys, on iOS 18.4+ and macOS 15+ (with Safari 18+)
+- Chrome/Edge on macOS 15+ with iCloud Passkeys or Security Keys
+- Chrome/Edge on Windows 11 with Security Keys
+- Chrome/Edge or Samsung Internet on Android, with Google Password Manager or Security Keys
+- 1Password on macOS (15+) and Android, but not on iOS
 
-### Storage Behavior
+To be able to use voice recognition, you need support for the Web Speech APIs. Supported platforms include:
 
-- **Without Vercel Blob**: Secrets are stored encrypted in browser localStorage (device-specific)
-- **With Vercel Blob**: Secrets are stored encrypted in Vercel Blob (syncs across devices)
-- **Security**: All secrets are encrypted using your Passkey's PRF output before storage
-- **Authentication**: API requests are authenticated using passkey-derived signatures
-- **Privacy**: Even with cloud storage, your secrets remain encrypted and only you can decrypt them
+- Safari on macOS and iOS
+- Chrome (note: uses a cloud service for voice recognition)
+- Edge on Windows - but not on macOS (note: uses a cloud service for voice recognition)
 
-### Authentication System
+## Deploying
 
-The cloud storage uses a robust authentication system:
+To deploy this app, you'll need:
 
-1. **Credential Registration**: Your passkey's public key is registered on first use
-2. **Request Signing**: Each API request is signed with your passkey
-3. **Dual Verification**: Both auth signatures and ownership proofs are verified
-4. **Tamper Protection**: Signatures include timestamps to prevent replay attacks
-5. **User Isolation**: Each user's secrets are cryptographically isolated by their unique passkey
+- A [Vercel](https://vercel.com/) account
+- Create a [Vercel AI Gateway](https://vercel.com/docs/ai-gateway). From the Vercel dashboard, create an API key for the AI Gateway from "AI Gateway > API Keys"
+- (Optional) To allow storing encrypted credentials on the cloud so they can roam between devices, create a [Vercel Blob Store](https://vercel.com/docs/vercel-blob) and get a read-write token from the Vercel dashboard under "Storage > Blob"
+- A Home Assistant server to connect to, with CORS enabled from the origin where the app is deployed to (usually, a domain ending in `vercel.app`). See the [official documentation for enabling CORS support](https://www.home-assistant.io/integrations/http/#cors_allowed_origins).
 
-The app automatically detects if Vercel Blob is configured and switches storage methods accordingly.
+Deploy with one click:
 
-## Build your app
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fhello-world&env=AI_GATEWAY_API_KEY,NEXT_PUBLIC_CLOUD_STORAGE,BLOB_BASE_URL,BLOB_READ_WRITE_TOKEN&envDescription=See%20project's%20README&envLink=https%3A%2F%2Fgithub.com%2Fvercel-saleseng%2Fmyhome-app&project-name=myhome-app&repository-name=myhome-app)
 
-Continue building your app on:
+## Security & Privacy
 
-**[https://v0.app/chat/projects/0YkPvVuj8QL](https://v0.app/chat/projects/0YkPvVuj8QL)**
+This demo app has a focus on security and privacy.
 
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+1. The application running on the Vercel cloud never connects to your Home Assistant server directly. Instead, all requests to Home Assistant are made directly from your browser, and the relevant output is sent to the backend app on the cloud for processing with the LLM.
+    - This means that you do not need to expose your Home Assistant server on the public Internet. For example, you can configure an IP within your LAN.
+    - You will need to ensure that your Home Assistant server is routable from your browser
+2. Credentials for connecting to Home Assistant are encrypted using a key derived from your Passkey, using the PRF extension. Data is encrypted with AES-256 in GCM mode.
+    - Because the encryption key is tied to each Passkey, losing the Passkey means the data can never be retrieved.
+3. By default, credentials for accessing Home Assistant are stored in the browser's local storage, and are tied to each browser/device. You can enable storing credentials in Vercel Blob so they roam across devices; credentials stored in the cloud are end-to-end encrypted, and the backend app doesn't have the keys to decrypt them.
+4. The server doesn't store any Personally Identifiable Information in cleartext, not even the URL of your Home Assistant server. Each credentials stored is identified by a random "user ID" which is tied to each Passkey, but not identifying a specific individual or linkable to any other personal information.
