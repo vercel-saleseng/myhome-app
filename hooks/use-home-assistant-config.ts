@@ -86,6 +86,7 @@ export const useHomeAssistantConfig = (
             }
 
             // We have all secrets!
+            setError(null)
             setConfig({ url: urlDec })
             setApiKey(apiKeyDec)
         })()

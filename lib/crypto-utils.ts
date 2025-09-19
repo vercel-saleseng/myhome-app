@@ -170,7 +170,7 @@ export default class CryptoUtils {
         }
 
         const result = await response.json()
-        return result.secretData
+        return result.data
     }
 
     async Delete(secretName: string): Promise<void> {

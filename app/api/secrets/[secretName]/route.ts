@@ -116,6 +116,10 @@ export async function POST(request: NextRequest, { params }: { params: RestParam
         return NextResponse.json({ error: 'Invalid authorization header' }, { status: 401 })
     }
 
+    const baseUrl = process.env.BLOB_BASE_URL.endsWith('/')
+        ? process.env.BLOB_BASE_URL
+        : process.env.BLOB_BASE_URL + '/'
+
     try {
         // Read the body from the request
         const body = (await request.json()) as StoreRequestData
@@ -131,22 +135,13 @@ export async function POST(request: NextRequest, { params }: { params: RestParam
             timestamp: Date.now(),
         }
 
-        // We use Trust On First Use, so check if there's already a blob at the path
-        const blobPath = `secrets/${authHeader.userId}/${secretName}.json`
-
-        try {
-            const blobHead = await head(blobPath)
-            console.log('HERE', blobHead)
-        } catch (blobError) {
-            // If the error is a 404, it means that there's no blob yet, so we can ignore that
-            // Re-throw all other exceptions
-            if (!(blobError instanceof BlobNotFoundError)) {
-                throw blobError
-            }
+        // We use Trust On First Use, so check if there's already a blob stored at the same path
+        if (!(await verifyExistingBlobPubKeyDigest(secretName, authHeader.userId, baseUrl, authHeader.pubKeyDigest))) {
+            return NextResponse.json({ error: 'Invalid key' }, { status: 403 })
         }
 
         // Store in Vercel Blob
-        const blob = await put(blobPath, JSON.stringify(secretData), {
+        const blob = await put(`secrets/${authHeader.userId}/${secretName}.json`, JSON.stringify(secretData), {
             access: 'public',
             contentType: 'application/json',
             allowOverwrite: true,
@@ -162,6 +157,25 @@ export async function POST(request: NextRequest, { params }: { params: RestParam
         console.error('Error storing secret:', error)
         return NextResponse.json({ error: 'Failed to store secret' }, { status: 500 })
     }
+}
+
+async function verifyExistingBlobPubKeyDigest(
+    secretName: string,
+    userId: string,
+    baseUrl: string,
+    expectDigest: string
+): Promise<boolean> {
+    const response = await fetch(baseUrl + `secrets/${userId}/${secretName}.json`)
+    if (!response.ok) {
+        if (response.status === 404) {
+            // Blob doesn't exist yet
+            return true
+        }
+        throw new Error(`Failed to fetch blob: ${response.status}`)
+    }
+
+    const secretData: CloudStoredSecret = await response.json()
+    return secretData?.pubKeyDigest === expectDigest
 }
 
 // GET /api/secrets/[secretName] - Retrieve an encrypted secret
@@ -189,11 +203,8 @@ export async function GET(request: NextRequest, { params }: { params: RestParams
 
     try {
         // Retrieve from Vercel Blob
-        const blobPath = `secrets/${authHeader.userId}/${secretName}.json`
-
         try {
-            const response = await fetch(baseUrl + blobPath)
-
+            const response = await fetch(baseUrl + `secrets/${authHeader.userId}/${secretName}.json`)
             if (!response.ok) {
                 if (response.status === 404) {
                     return NextResponse.json({ error: 'Secret not found' }, { status: 404 })
@@ -202,6 +213,11 @@ export async function GET(request: NextRequest, { params }: { params: RestParams
             }
 
             const secretData: CloudStoredSecret = await response.json()
+
+            // Ensure the key that signed the blob is the same on as in the request
+            if (secretData?.pubKeyDigest !== authHeader.pubKeyDigest) {
+                return NextResponse.json({ error: 'Invalid key' }, { status: 403 })
+            }
 
             return NextResponse.json({
                 success: true,
@@ -238,7 +254,16 @@ export async function DELETE(request: NextRequest, { params }: { params: RestPar
         return NextResponse.json({ error: 'Invalid authorization header' }, { status: 401 })
     }
 
+    const baseUrl = process.env.BLOB_BASE_URL.endsWith('/')
+        ? process.env.BLOB_BASE_URL
+        : process.env.BLOB_BASE_URL + '/'
+
     try {
+        // We use Trust On First Use, so check if there's already a blob stored at the same path
+        if (!(await verifyExistingBlobPubKeyDigest(secretName, authHeader.userId, baseUrl, authHeader.pubKeyDigest))) {
+            return NextResponse.json({ error: 'Invalid key' }, { status: 403 })
+        }
+
         // Delete from Vercel Blob
         try {
             await del(`secrets/${authHeader.userId}/${secretName}.json`)
