@@ -3,7 +3,7 @@
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Bot, Key, AlertCircle, Home, ExternalLink } from 'lucide-react'
+import { Bot, Key, AlertCircle, Home, ExternalLink, Github } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { AppHeader } from '@/components/app-header'
@@ -83,6 +83,18 @@ const LoginPage = ({
                             </div>
                         </div>
                     )}
+
+                    <div className="flex justify-center pt-4 border-t">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open('https://github.com/vercel-saleseng/myhome-app', '_blank')}
+                            className="text-muted-foreground hover:text-foreground"
+                        >
+                            <Github className="w-4 h-4 mr-2" />
+                            View on GitHub
+                        </Button>
+                    </div>
                 </Card>
             </div>
         )
@@ -146,6 +158,18 @@ const LoginPage = ({
                             Create New Passkey
                         </Button>
                     </div>
+
+                    <div className="flex justify-center pt-4 border-t">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open('https://github.com/vercel-saleseng/myhome-app', '_blank')}
+                            className="text-muted-foreground hover:text-foreground"
+                        >
+                            <Github className="w-4 h-4 mr-2" />
+                            View on GitHub
+                        </Button>
+                    </div>
                 </Card>
             )}
         </div>
@@ -188,6 +212,20 @@ const MainInterface = ({
             <main className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] p-4">
                 <ModernChatInterface haConfigHook={haConfigHook} setUser={setUser} />
             </main>
+
+            <footer className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="container flex justify-center py-4">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open('https://github.com/vercel-saleseng/myhome-app', '_blank')}
+                        className="text-muted-foreground hover:text-foreground"
+                    >
+                        <Github className="w-4 h-4 mr-2" />
+                        View on GitHub
+                    </Button>
+                </div>
+            </footer>
         </div>
     )
 }

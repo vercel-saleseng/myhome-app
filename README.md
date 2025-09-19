@@ -1,10 +1,10 @@
 # MyHome Assistant - Vercel AI Cloud agent demo
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/alesegala-vtest314/v0-voice-assistant-app)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://myhome-app.vercel.app/)
 
 This repository contains a demo application showcasing Vercel's AI Cloud, deploying an AI agent. It works with a [Home Assistant](https://www.home-assistant.io/) server to check the status of and control with lights and doors, among other things. It is built with a focus on security and privacy.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fhello-world&env=AI_GATEWAY_API_KEY,NEXT_PUBLIC_CLOUD_STORAGE,BLOB_BASE_URL,BLOB_READ_WRITE_TOKEN&envDescription=See%20project's%20README&envLink=https%3A%2F%2Fgithub.com%2Fvercel-saleseng%2Fmyhome-app&project-name=myhome-app&repository-name=myhome-app)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-saleseng%2Fmyhome-app&env=AI_GATEWAY_API_KEY,NEXT_PUBLIC_CLOUD_STORAGE,BLOB_BASE_URL,BLOB_READ_WRITE_TOKEN&envDescription=See%20project's%20README&envLink=https%3A%2F%2Fgithub.com%2Fvercel-saleseng%2Fmyhome-app&project-name=myhome-app&repository-name=myhome-app)
 
 ### Features
 

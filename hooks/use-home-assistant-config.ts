@@ -58,6 +58,7 @@ export const useHomeAssistantConfig = (
             } catch (err) {
                 if (err instanceof SecretNotFoundError) {
                     // The secret was just not found (instance is not fully configured): nothing to do here
+                    setError(null)
                     setConfig({ url: null })
                     setApiKey(null)
                     return
@@ -75,6 +76,7 @@ export const useHomeAssistantConfig = (
             } catch (err) {
                 if (err instanceof SecretNotFoundError) {
                     // The secret was just not found (instance is not fully configured): nothing to do here
+                    setError(null)
                     setConfig({ url: null })
                     setApiKey(null)
                     return
