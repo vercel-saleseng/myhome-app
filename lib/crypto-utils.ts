@@ -1,5 +1,5 @@
 import { Encode as B64Encode, Decode as B64Decode } from 'arraybuffer-encoding/base64/url'
-import { p256 } from '@noble/curves/nist'
+import { p256 } from '@noble/curves/nist.js'
 
 interface StoredSecret {
     id: string
